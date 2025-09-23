@@ -19,12 +19,9 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  token: string;
+  access_token: string;
+  token_type: string;
+  expires_in: number;
 }
 
 class ApiService {
@@ -32,7 +29,7 @@ class ApiService {
   private timeout: number;
 
   constructor() {
-    this.baseURL = API_BASE_URL || 'http://localhost:3000/api';
+    this.baseURL = API_BASE_URL || 'http://localhost/api';
     this.timeout = parseInt(API_TIMEOUT) || 10000;
   }
 
@@ -66,7 +63,7 @@ class ApiService {
 
       return {
         success: true,
-        data,
+        data: data.data || data, // Tu backend devuelve { data: {...} }
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -90,8 +87,8 @@ class ApiService {
 
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.makeRequest<AuthResponse>('/auth/login', {
-      method: 'POST',
+    return this.makeRequest<AuthResponse>('/users/login', {
+      method: 'GET',
       body: JSON.stringify(credentials),
     });
   }
