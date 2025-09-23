@@ -21,6 +21,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleLogout = () => {
     navigation.navigate('Login');
   };
+  const handleNewGame = () => {
+  navigation.navigate('SelectGameType');
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -69,18 +72,29 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             Inicio Rápido
           </Text>
           <View className="flex-row justify-between">
-            <Card className="flex-1 mr-2 items-center" padding="large">
-              <Text className="text-3xl mb-2">🎲</Text>
-              <Text className="text-sm font-medium text-black">Nueva Partida</Text>
-            </Card>
-            <Card className="flex-1 mx-2 items-center" padding="large">
-              <Text className="text-3xl mb-2">📚</Text>
-              <Text className="text-sm font-medium text-black">Explorar</Text>
-            </Card>
-            <Card className="flex-1 ml-2 items-center" padding="large">
-              <Text className="text-3xl mb-2">👥</Text>
-              <Text className="text-sm font-medium text-black">Invitar</Text>
-            </Card>
+            <TouchableOpacity 
+              onPress={handleNewGame}
+              className="flex-1 mr-2"
+            >
+              <Card className="items-center" padding="large">
+                <Text className="text-3xl mb-2">🎲</Text>
+                <Text className="text-sm font-medium text-black">Nueva Partida</Text>
+              </Card>
+            </TouchableOpacity>
+            
+            <TouchableOpacity className="flex-1 mx-2">
+              <Card className="items-center" padding="large">
+                <Text className="text-3xl mb-2">📚</Text>
+                <Text className="text-sm font-medium text-black">Explorar</Text>
+              </Card>
+            </TouchableOpacity>
+            
+            <TouchableOpacity className="flex-1 ml-2">
+              <Card className="items-center" padding="large">
+                <Text className="text-3xl mb-2">👥</Text>
+                <Text className="text-sm font-medium text-black">Invitar</Text>
+              </Card>
+            </TouchableOpacity>
           </View>
         </View>
 

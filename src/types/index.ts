@@ -40,11 +40,50 @@ export interface Player {
   color?: string;
 }
 
-// Tipos para navegación
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
+  CreateGame: undefined;
   GameSetup: undefined;
-  Game: { players: string[]; gameName?: string };
+  SelectGameType: undefined;
+  AddPlayers: { selectedGame: any };
+  GameConfig: { selectedGame: any; players: GamePlayer[] };
+  Game: { config: GameSetupConfig };
 };
+
+
+export interface CustomGame {
+  id: string;
+  name: string;
+  description?: string;
+  icon: string;
+  rules: string;
+  maxPlayers: number;
+  minPlayers: number;
+  hasRounds: boolean;
+  hasTimeLimit: boolean;
+  isPublic: boolean;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export interface GameSetupConfig {
+  gameName: string;
+  players: GamePlayer[];
+  numberOfRounds?: number;
+  timePerTurn?: number;
+  pointsToWin: number;
+  isPrivate: boolean;
+  hasTimeLimit: boolean;
+  hasRounds: boolean;
+}
+
+export interface GamePlayer {
+  id: string;
+  name: string;
+  isHost: boolean;
+  avatar: string;
+  color: string;
+  isGuest: boolean;
+}

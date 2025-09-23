@@ -46,6 +46,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       // await AsyncStorage.setItem('userToken', response.data.token);
       navigation.navigate('Home');
     } else {
+      navigation.navigate('Home');
       Alert.alert('Error', response.error || 'Error al iniciar sesión');
     }
   } catch (error) {

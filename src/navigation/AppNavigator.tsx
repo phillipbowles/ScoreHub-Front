@@ -7,6 +7,10 @@ import { RootStackParamList } from '../types';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { CreateGameScreen } from '../screens/game/CreateGameScreen';
+import { SelectGameTypeScreen } from '../screens/game/SelectGameTypeScreen';
+import { AddPlayersScreen } from '../screens/game/AddPlayersScreen';
+import { GameConfigScreen } from '../screens/game/GameConfigScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -40,6 +44,26 @@ export const AppNavigator: React.FC = () => {
           options={{
             gestureEnabled: false, // Prevenir volver atrás con gesto
           }}
+        />
+        <Stack.Screen 
+          name="CreateGame" 
+          component={CreateGameScreen}
+        />
+        <Stack.Screen 
+          name="SelectGameType" 
+          component={SelectGameTypeScreen}
+        />
+        <Stack.Screen 
+          name="AddPlayers" 
+          component={AddPlayersScreen}
+        />
+        <Stack.Screen 
+          name="GameConfig" 
+          component={GameConfigScreen}
+        />
+        <Stack.Screen 
+          name="Game" 
+          component={HomeScreen} // Temporalmente hasta crear GameScreen
         />
       </Stack.Navigator>
     </NavigationContainer>
