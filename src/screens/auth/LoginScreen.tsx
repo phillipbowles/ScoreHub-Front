@@ -43,7 +43,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     if (response.success) {
       // Guardar token si es necesario
-      // await AsyncStorage.setItem('userToken', response.data.token);
+      // await AsyncStorage.setItem('userToken', response.data.access_token);
+      console.log('Login exitoso:', response.data);
       navigation.navigate('Home');
     } else {
       Alert.alert('Error', response.error || 'Error al iniciar sesión');
