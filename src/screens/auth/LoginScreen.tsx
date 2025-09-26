@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { apiService } from '../../utils/api';
 import { RootStackParamList, LoginFormData } from '../../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -37,20 +38,31 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   
   try {
     const response = await apiService.login({
-      email: formData.email,
+      email: formData.email.toLowerCase().trim(),
       password: formData.password,
     });
 
-    if (response.success) {
-      // Guardar token si es necesario
-      // await AsyncStorage.setItem('userToken', response.data.token);
+    if (response.success && response.data) {
+      // Guardar token si existe
+      if (response.data.token) {
+        await AsyncStorage.setItem('userToken', response.data.token);
+      }
+      // Guardar datos del usuario
+      await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+
+      console.log('Login successful:', response.data.user);
       navigation.navigate('Home');
     } else {
-      navigation.navigate('Home');
-      Alert.alert('Error', response.error || 'Error al iniciar sesión');
+      // Manejar errores específicos del backend
+      const errorMessage = response.error || 'Credenciales incorrectas';
+      Alert.alert('Error de Login', errorMessage);
     }
   } catch (error) {
-    Alert.alert('Error', 'Error de conexión');
+    console.error('Login network error:', error);
+    Alert.alert(
+      'Error de Conexión', 
+      'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
+    );
   } finally {
     setIsLoading(false);
   }

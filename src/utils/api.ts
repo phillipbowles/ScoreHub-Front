@@ -103,24 +103,11 @@ class ApiService {
 
   // AUTH - Ajustado a tus rutas
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    // Si tu login es GET con parámetros de query
-    const params = new URLSearchParams({
-      email: credentials.email,
-      password: credentials.password,
-    });
-    
-    return this.makeRequest<AuthResponse>(`/users/login?${params}`, {
-      method: 'GET',
+    return this.makeRequest<AuthResponse>('/users/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
     });
   }
-
-  // Si prefieres cambiar tu backend para que login sea POST:
-  // async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-  //   return this.makeRequest<AuthResponse>('/users/login', {
-  //     method: 'POST',
-  //     body: JSON.stringify(credentials),
-  //   });
-  // }
 
   async register(userData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
     return this.makeRequest<AuthResponse>('/users', {
