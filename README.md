@@ -1,88 +1,187 @@
-# ScoreHub - Mobile Scoring App
+# Score Hub Frontend - React Native
 
-Aplicación móvil para llevar el marcador de juegos de mesa, desarrollada con React Native, TypeScript y Tailwind CSS.
+Aplicación móvil de Score Hub desarrollada en React Native con Expo, conectada a un backend Laravel.
 
-## Características
+## 📋 Características
 
-- Sistema de autenticación (Login/Register)
-- Contador de puntos para múltiples jugadores
-- Interfaz moderna y minimalista
-- Soporte para diferentes tipos de juegos
-- Historial de partidas
+- ✅ Sistema de autenticación completo (Login/Register)
+- ✅ Conexión con backend Laravel via API REST
+- ✅ Gestión de usuarios y autenticación JWT
+- ✅ Creación y gestión de juegos personalizados
+- ✅ Interfaz moderna con Tailwind CSS
+- ✅ Navegación nativa optimizada
+- ✅ Soporte para múltiples plataformas (iOS/Android/Web)
 
-## Tecnologías
+## 🛠 Tecnologías
 
-- **React Native** con **Expo**
+- **React Native** con **Expo 54**
 - **TypeScript** para tipado estático
 - **NativeWind** (Tailwind CSS para React Native)
-- **React Navigation** para navegación
+- **React Navigation 7** para navegación
 - **AsyncStorage** para persistencia local
+- **API REST** conectada a Laravel backend
 
-## Instalación y Configuración
+## 🚀 Instalación y Configuración
 
-### Prerrequisitos
+### 📋 Prerrequisitos
 
-- **Node.js** (versión 18 o superior)
-- **npm** o **yarn**
-- **Smartphone** (Android o iOS)
+- **Node.js 18+**
+- **npm o yarn**
+- **Expo CLI**
+- **Expo Go** app en tu celular (iOS/Android)
+- **Backend Laravel** configurado y corriendo
 
-### Paso a paso
+### 🔧 Paso a paso
 
-#### 1. Clonar el repositorio
+#### 1. Clonar/Descargar el proyecto
 ```bash
-git clone https://github.com/phillipbowles/ScoreHub-Front.git
+# Si tienes Git
+git clone [URL_DEL_REPOSITORIO]
 cd ScoreHub-Front
+
+# O descomprimir el archivo ZIP en una carpeta llamada ScoreHub-Front
 ```
 
 #### 2. Instalar dependencias
 ```bash
 npm install
+# o
+yarn install
 ```
 
-#### 3. Instalar Expo Go en tu celular
-- **Android**: Google Play Store → Buscar "Expo Go" → Instalar
-- **iOS**: App Store → Buscar "Expo Go" → Instalar
-
-#### 4. Configurar variables de entorno (opcional)
+#### 3. Instalar Expo CLI (si no lo tienes)
 ```bash
-# Copiar archivo de ejemplo
-cp .env.example .env
-
-# Editar .env si necesitas conectar con backend
-# Por defecto funciona sin backend
+npm install -g @expo/cli
 ```
 
-#### 5. Iniciar la aplicación
+#### 4. Instalar Expo Go en tu celular
+- **iOS:** https://apps.apple.com/app/expo-go/id982107779
+- **Android:** https://play.google.com/store/apps/details?id=host.exp.exponent
+
+#### 5. Configurar variables de entorno
+Crea un archivo `.env` en la raíz del proyecto:
+
+```bash
+# Para simulador/desarrollo local
+API_BASE_URL=http://localhost:8000/api
+API_TIMEOUT=10000
+
+# Para dispositivo físico (reemplaza con tu IP local)
+# API_BASE_URL=http://192.168.1.XXX:8000/api
+
+# Para usar con ngrok
+# API_BASE_URL=https://tu-url-ngrok.ngrok.io/api
+```
+
+#### 6. Iniciar la aplicación
 ```bash
 npx expo start
 ```
 
-#### 6. Abrir en tu celular
+#### 7. Abrir en tu dispositivo
 1. Se abrirá automáticamente una página en tu navegador con un QR code
 2. **Android**: Abrir Expo Go → Tocar "Scan QR Code" → Escanear
 3. **iOS**: Abrir app Cámara → Enfocar al QR → Tocar "Abrir con Expo Go"
 
-La app se cargará automáticamente en tu celular y cualquier cambio en el código se reflejará instantáneamente (hot reload).
+¡La app se cargará automáticamente y cualquier cambio se reflejará instantáneamente!
 
-## Scripts Disponibles
+## 📱 Configuración según tu entorno
+
+### Opción 1: Simulador (recomendado para empezar)
+1. **En la terminal de Expo presiona:**
+   - `i` para iOS Simulator
+   - `a` para Android Emulator
+   - `w` para navegador web
+
+2. **URL del backend:** `http://localhost:8000/api`
+
+### Opción 2: Dispositivo físico - misma WiFi
+1. **Obtén tu IP local:**
+   ```bash
+   # Mac/Linux
+   ifconfig | grep "inet " | grep -v 127.0.0.1
+
+   # Windows
+   ipconfig
+   ```
+
+2. **Inicia el backend con acceso de red:**
+   ```bash
+   cd Score-Hub-Back
+   php artisan serve --host=0.0.0.0 --port=8000
+   ```
+
+3. **Actualiza el archivo `.env` del frontend:**
+   ```bash
+   API_BASE_URL=http://TU_IP_LOCAL:8000/api
+   ```
+
+4. **Inicia Expo:**
+   ```bash
+   npx expo start
+   ```
+
+5. **Escanea el QR con Expo Go**
+
+### Opción 3: Dispositivo físico - redes diferentes (ngrok)
+1. **Instala ngrok:**
+   ```bash
+   # Mac
+   brew install ngrok
+
+   # Otras plataformas: https://ngrok.com/download
+   ```
+
+2. **Regístrate en ngrok:**
+   - Ve a https://dashboard.ngrok.com/signup
+   - Obtén tu authtoken
+
+3. **Configura ngrok:**
+   ```bash
+   ngrok config add-authtoken TU_TOKEN_AQUI
+   ```
+
+4. **Inicia el backend normalmente:**
+   ```bash
+   cd Score-Hub-Back
+   php artisan serve
+   ```
+
+5. **En otra terminal, crea el túnel:**
+   ```bash
+   ngrok http 8000
+   ```
+
+6. **Copia la URL https que te da ngrok y actualiza `.env`:**
+   ```bash
+   API_BASE_URL=https://abc123def.ngrok.io/api
+   ```
+
+7. **Inicia Expo con túnel:**
+   ```bash
+   npx expo start --tunnel
+   ```
+
+## 📦 Scripts Disponibles
 
 ```bash
-# Iniciar servidor de desarrollo
+# Iniciar en desarrollo
 npm start
-# o
-npx expo start
 
-# Iniciar con caché limpio (si hay problemas)
+# Limpiar cache y reiniciar
 npx expo start --clear
 
-# Abrir directamente en Android (si tienes emulador)
-npx expo start --android
-
-# Abrir directamente en iOS (solo macOS con simulador)
+# Abrir en iOS simulator
 npx expo start --ios
 
-# Ejecutar en navegador web
+# Abrir en Android emulator
+npx expo start --android
+
+# Abrir en navegador web
 npx expo start --web
+
+# Usar túnel para dispositivos remotos
+npx expo start --tunnel
 ```
 
 ## Estructura del Proyecto
@@ -107,7 +206,46 @@ src/
     └── global.ts        # Estilos globales
 ```
 
-## Solución de Problemas
+## 🐛 Solución de Problemas
+
+### Error "Network request failed"
+**Causa:** El frontend no puede conectarse al backend
+**Soluciones:**
+1. **Verifica que el backend esté corriendo:**
+   ```bash
+   curl http://localhost:8000
+   ```
+
+2. **Si usas dispositivo físico, verifica la IP:**
+   ```bash
+   # Obtén tu IP y actualiza .env
+   ifconfig | grep "inet " | grep -v 127.0.0.1
+   ```
+
+3. **Reinicia Expo:**
+   ```bash
+   npx expo start --clear
+   ```
+
+### Error "Could not connect to development server"
+**Soluciones:**
+1. **Usa túnel de Expo:**
+   ```bash
+   npx expo start --tunnel
+   ```
+
+2. **O usa ngrok como se describe arriba**
+
+### La app se cierra al hacer login/registro
+**Causa:** Problemas con el backend o JWT
+**Soluciones:**
+1. **Revisa los logs en la consola de Expo**
+2. **Verifica que el backend esté retornando el formato correcto**
+3. **Asegúrate de que JWT_SECRET esté configurado en el backend:**
+   ```bash
+   # En el .env del backend
+   JWT_SECRET=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9
+   ```
 
 ### Error: "expo: command not found"
 **Solución**: Usar `npx expo start` en lugar de `expo start`
@@ -118,24 +256,37 @@ src/
 npx expo start --clear
 ```
 
-### Error: "Network response timed out"
-**Solución**: Asegúrate de estar en la misma red WiFi que tu computadora
+### Variables de entorno no se cargan
+**Soluciones:**
+1. **Reinicia completamente Expo:**
+   ```bash
+   # Ctrl+C para parar
+   npx expo start --clear
+   ```
 
-### No aparece el QR code
-**Solución**: 
-1. Abrir manualmente http://localhost:19002 en tu navegador
-2. O usar modo túnel: `npx expo start --tunnel`
+2. **Verifica que el archivo `.env` esté en la raíz del proyecto**
 
 ### Problemas con dependencias
 **Solución**: Reinstalar
 ```bash
 rm -rf node_modules package-lock.json
 npm install
-npx expo start
+npx expo start --clear
 ```
 
 ### Error en iPhone: "Unable to verify app"
 **Solución**: En iPhone ir a Configuración → General → Gestión de dispositivos → Confiar en la aplicación
+
+### Backend devuelve error 500
+**Causa:** Configuración incorrecta del backend
+**Soluciones:**
+1. **Verifica el archivo .env del backend**
+2. **Ejecuta las migraciones:**
+   ```bash
+   cd Score-Hub-Back
+   php artisan migrate
+   ```
+3. **Verifica que SQLite esté configurado correctamente**
 
 ## Desarrollo
 

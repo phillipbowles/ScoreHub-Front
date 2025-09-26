@@ -12,6 +12,7 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { apiService } from '../../utils/api';
 import { RootStackParamList, RegisterFormData } from '../../types';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
@@ -47,13 +48,40 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     setIsLoading(true);
-    
-    setTimeout(() => {
+
+    try {
+      const response = await apiService.register({
+        name: formData.name.trim(),
+        email_address: formData.email.toLowerCase().trim(),
+        password: formData.password,
+        password_confirmation: formData.confirmPassword,
+      });
+
+      if (response.success) {
+        console.log('✅ Registration successful:', response.data);
+        Alert.alert('¡Éxito!', 'Cuenta creada correctamente', [
+          {
+            text: 'OK',
+            onPress: () => {
+              console.log('Navigating to Login screen');
+              navigation.navigate('Login');
+            }
+          }
+        ]);
+      } else {
+        const errorMessage = response.error || 'Error al crear la cuenta';
+        console.log('❌ Registration failed:', errorMessage);
+        Alert.alert('Error de Registro', errorMessage);
+      }
+    } catch (error) {
+      console.error('Register network error:', error);
+      Alert.alert(
+        'Error de Conexión',
+        'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
+      );
+    } finally {
       setIsLoading(false);
-      Alert.alert('¡Éxito!', 'Cuenta creada correctamente', [
-        { text: 'OK', onPress: () => navigation.navigate('Login') }
-      ]);
-    }, 1000);
+    }
   };
 
   return (

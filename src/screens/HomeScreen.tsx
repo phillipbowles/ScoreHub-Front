@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { RootStackParamList } from '../types';
+import { apiService } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -18,11 +21,73 @@ interface Props {
 }
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const handleLogout = () => {
-    navigation.navigate('Login');
+  const [games, setGames] = useState<any[]>([]);
+  const [userName, setUserName] = useState('Usuario');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadGames();
+    loadUserName();
+  }, []);
+
+  const loadGames = async () => {
+    try {
+      const response = await apiService.getGames();
+      if (response.success && response.data) {
+        setGames(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading games:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const loadUserName = async () => {
+    try {
+      const response = await apiService.getMe();
+      if (response.success && response.data?.data) {
+        setUserName(response.data.data.name || 'Usuario');
+        // Guardar los datos actualizados del usuario
+        await AsyncStorage.setItem('userData', JSON.stringify(response.data.data));
+      } else {
+        // Fallback a datos locales si falla el API
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const user = JSON.parse(userData);
+          setUserName(user.name || 'Usuario');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user name:', error);
+      // Fallback a datos locales si hay error
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const user = JSON.parse(userData);
+          setUserName(user.name || 'Usuario');
+        }
+      } catch (fallbackError) {
+        console.error('Error loading fallback user data:', fallbackError);
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiService.logout();
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('userData');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Aún así navegamos al login para limpiar la sesión local
+      navigation.navigate('Login');
+    }
+  };
+
   const handleNewGame = () => {
-  navigation.navigate('SelectGameType');
+    navigation.navigate('SelectGameType');
   };
 
   return (
@@ -31,7 +96,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {/* Header */}
         <View className="flex-row justify-between items-center py-4 mt-2">
           <View>
-            <Text className="text-2xl font-bold text-black">Hola, Ana 👋</Text>
+            <Text className="text-2xl font-bold text-black">Hola, {userName} 👋</Text>
             <Text className="text-sm text-gray-500 mt-1">
               ¿Listo para una nueva partida?
             </Text>
@@ -101,47 +166,40 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {/* Popular Games */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-black mb-4">
-            Populares Esta Semana
+            Juegos Disponibles
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row space-x-3">
-              <Card className="w-36 items-center" padding="medium">
-                <View className="w-12 h-12 bg-orange-500 rounded-xl items-center justify-center mb-3">
-                  <Text className="text-2xl">🃏</Text>
-                </View>
-                <Text className="font-semibold text-black mb-1">UNO</Text>
-                <Text className="text-xs text-gray-500 mb-2">2-10 jugadores</Text>
-                <View className="flex-row mb-3">
-                  <Text className="text-orange-500">⭐⭐⭐⭐⭐</Text>
-                </View>
-                <Button title="Jugar" size="small" className="w-full" />
-              </Card>
-
-              <Card className="w-36 items-center" padding="medium">
-                <View className="w-12 h-12 bg-teal-500 rounded-xl items-center justify-center mb-3">
-                  <Text className="text-2xl">🏠</Text>
-                </View>
-                <Text className="font-semibold text-black mb-1">Monopoly</Text>
-                <Text className="text-xs text-gray-500 mb-2">2-8 jugadores</Text>
-                <View className="flex-row mb-3">
-                  <Text className="text-teal-500">⭐⭐⭐⭐⭐</Text>
-                </View>
-                <Button title="Jugar" size="small" className="w-full" />
-              </Card>
-
-              <Card className="w-36 items-center" padding="medium">
-                <View className="w-12 h-12 bg-purple-500 rounded-xl items-center justify-center mb-3">
-                  <Text className="text-2xl">🎯</Text>
-                </View>
-                <Text className="font-semibold text-black mb-1">Dardos</Text>
-                <Text className="text-xs text-gray-500 mb-2">2-4 jugadores</Text>
-                <View className="flex-row mb-3">
-                  <Text className="text-purple-500">⭐⭐⭐⭐⭐</Text>
-                </View>
-                <Button title="Jugar" size="small" className="w-full" />
-              </Card>
-            </View>
-          </ScrollView>
+          {loading ? (
+            <Text className="text-center text-gray-500 py-8">Cargando juegos...</Text>
+          ) : games.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row space-x-3">
+                {games.map((game, index) => (
+                  <Card key={game.id || index} className="w-36 items-center" padding="medium">
+                    <View className="w-12 h-12 bg-blue-500 rounded-xl items-center justify-center mb-3">
+                      <Text className="text-2xl">{game.icon || '🎲'}</Text>
+                    </View>
+                    <Text className="font-semibold text-black mb-1" numberOfLines={1}>
+                      {game.name || 'Sin nombre'}
+                    </Text>
+                    <Text className="text-xs text-gray-500 mb-2">
+                      {game.min_players || 2}-{game.max_players || 4} jugadores
+                    </Text>
+                    <Button title="Jugar" size="small" className="w-full" />
+                  </Card>
+                ))}
+              </View>
+            </ScrollView>
+          ) : (
+            <Card className="items-center" padding="large">
+              <Text className="text-3xl mb-2">🎮</Text>
+              <Text className="text-base text-gray-600 mb-4">No hay juegos disponibles</Text>
+              <Button
+                title="Crear Primer Juego"
+                onPress={() => navigation.navigate('CreateGame')}
+                size="small"
+              />
+            </Card>
+          )}
         </View>
 
         {/* Stats */}

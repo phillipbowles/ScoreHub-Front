@@ -15,18 +15,28 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   name: string;
-  email: string;
+  email_address: string;
   password: string;
+  password_confirmation: string;
 }
 
-// Ajustar según la respuesta real de tu backend
+// Respuesta de login del backend
+export interface LoginResponse {
+  data: {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+  };
+}
+
+// Respuesta de registro del backend
 export interface AuthResponse {
   user: {
     id: number;
     name: string;
     email: string;
   };
-  token: string; // Si tu backend devuelve token
+  token: string;
 }
 
 class ApiService {
@@ -34,8 +44,20 @@ class ApiService {
   private timeout: number;
 
   constructor() {
-    this.baseURL = API_BASE_URL || 'http://localhost/api';
-    this.timeout = parseInt(API_TIMEOUT) || 10000;
+    // Auto-detectar plataforma
+    const isWeb = typeof window !== 'undefined' && window.location;
+
+    if (isWeb) {
+      // En web usa localhost
+      this.baseURL = 'http://localhost:8000/api';
+    } else {
+      // En móvil usa ngrok
+      this.baseURL = 'https://proemployment-bulah-diffusedly.ngrok-free.dev/api';
+    }
+
+    this.timeout = 10000;
+    console.log('🔧 Platform:', isWeb ? 'WEB' : 'MOBILE');
+    console.log('🔧 API Configuration:', { baseURL: this.baseURL, timeout: this.timeout });
   }
 
   private async getAuthToken(): Promise<string | null> {
@@ -50,12 +72,28 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    const fullURL = `${this.baseURL}${endpoint}`;
+    console.log('🔥 === API REQUEST START ===');
+    console.log('🎯 Target URL:', fullURL);
+    console.log('🎯 Base URL:', this.baseURL);
+    console.log('🎯 Endpoint:', endpoint);
+    console.log('🎯 Method:', options.method || 'GET');
+
+    // También enviamos a console.warn y console.error para que aparezcan en Expo
+    console.warn('🔥 API REQUEST:', fullURL);
+    console.error('DEBUG: Making request to:', fullURL);
+
     try {
       const token = await this.getAuthToken();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      console.log('🔑 Auth Token:', token ? 'EXISTS' : 'NONE');
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ REQUEST TIMEOUT!');
+        controller.abort();
+      }, this.timeout);
+
+      const requestOptions = {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -64,31 +102,67 @@ class ApiService {
           ...options.headers,
         },
         signal: controller.signal,
-      });
+      };
+
+      console.log('📦 Request Headers:', requestOptions.headers);
+      console.log('📦 Request Body:', options.body);
+      console.log('🚀 Sending request...');
+
+      const response = await fetch(fullURL, requestOptions);
 
       clearTimeout(timeoutId);
+      console.log('✅ Response received!');
+      console.log('📊 Response Status:', response.status);
+      console.log('📊 Response OK:', response.ok);
+      console.log('📊 Response Headers:', Object.fromEntries(response.headers.entries()));
 
       let data;
       try {
-        data = await response.json();
-      } catch {
+        const responseText = await response.text();
+        console.log('📄 Raw Response Text:', responseText);
+        data = JSON.parse(responseText);
+        console.log('📄 Parsed Response Data:', data);
+      } catch (parseError) {
+        console.log('❌ JSON Parse Error:', parseError);
         data = {};
       }
 
       if (!response.ok) {
+        console.log('❌ Request failed with status:', response.status);
         return {
           success: false,
           error: data.message || data.error || `HTTP error! status: ${response.status}`,
         };
       }
 
+      console.log('✅ === API REQUEST SUCCESS ===');
       return {
         success: true,
         data,
       };
     } catch (error) {
-      console.error('API Error:', error);
+      console.log('💥 === API REQUEST ERROR ===');
+      console.error('💥 Error Type:', error?.constructor?.name);
+      console.error('💥 Error Message:', error?.message);
+      console.error('💥 Full Error:', error);
+      console.error('💥 Failed URL:', fullURL);
+
+      // Esto definitivamente aparecerá en la consola de Expo
+      console.warn('NETWORK ERROR for URL:', fullURL);
+      console.warn('ERROR MESSAGE:', error?.message);
+
       if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('💥 This was a timeout error');
+        } else if (error.message.includes('Network request failed')) {
+          console.log('💥 This is a network connectivity error');
+          console.log('💥 Possible causes:');
+          console.log('   - Backend not running');
+          console.log('   - Wrong URL');
+          console.log('   - Firewall blocking');
+          console.log('   - Network connectivity issue');
+        }
+
         return {
           success: false,
           error: error.name === 'AbortError' ? 'Request timeout' : error.message,
@@ -102,8 +176,8 @@ class ApiService {
   }
 
   // AUTH - Ajustado a tus rutas
-  async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.makeRequest<AuthResponse>('/users/login', {
+  async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
+    return this.makeRequest<LoginResponse>('/users/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
@@ -114,6 +188,16 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(userData),
     });
+  }
+
+  async logout(): Promise<ApiResponse<void>> {
+    return this.makeRequest<void>('/users/logout', {
+      method: 'POST',
+    });
+  }
+
+  async getMe(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/me');
   }
 
   // USERS

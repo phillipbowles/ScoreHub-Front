@@ -12,6 +12,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, CustomGame } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { apiService } from '../../utils/api';
 
 type CreateGameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateGame'>;
 
@@ -43,8 +44,9 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
     showCustomIcon: false,
     rulesType: 'text' // 'text' or 'pdf'
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleCreateGame = () => {
+  const handleCreateGame = async () => {
     if (!formData.name.trim()) {
       Alert.alert('Error', 'El nombre del juego es obligatorio');
       return;
@@ -55,14 +57,44 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    // Aquí harías la llamada a la API para crear el juego
-    Alert.alert(
-      '¡Juego Creado!',
-      `${formData.name} ha sido creado exitosamente`,
-      [
-        { text: 'OK', onPress: () => navigation.navigate('Home') }
-      ]
-    );
+    setIsLoading(true);
+
+    try {
+      const gameData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        icon: formData.showCustomIcon ? formData.customIcon : formData.icon,
+        rules: formData.rules.trim(),
+        max_players: formData.maxPlayers,
+        min_players: formData.minPlayers,
+        has_rounds: formData.hasRounds,
+        has_time_limit: formData.hasTimeLimit,
+        is_public: formData.isPublic,
+      };
+
+      const response = await apiService.createGame(gameData);
+
+      if (response.success) {
+        Alert.alert(
+          '¡Juego Creado!',
+          `${formData.name} ha sido creado exitosamente`,
+          [
+            { text: 'OK', onPress: () => navigation.navigate('Home') }
+          ]
+        );
+      } else {
+        const errorMessage = response.error || 'Error al crear el juego';
+        Alert.alert('Error', errorMessage);
+      }
+    } catch (error) {
+      console.error('Create game network error:', error);
+      Alert.alert(
+        'Error de Conexión',
+        'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateFormData = (key: string, value: any) => {
@@ -307,8 +339,9 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <Button
-          title="Crear Juego"
+          title={isLoading ? "Creando..." : "Crear Juego"}
           onPress={handleCreateGame}
+          disabled={isLoading}
           className="mb-8"
         />
       </ScrollView>

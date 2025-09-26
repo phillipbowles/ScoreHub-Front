@@ -43,14 +43,12 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     });
 
     if (response.success && response.data) {
-      // Guardar token si existe
-      if (response.data.token) {
-        await AsyncStorage.setItem('userToken', response.data.token);
+      // Guardar token del formato de respuesta del backend
+      if (response.data.data?.access_token) {
+        await AsyncStorage.setItem('userToken', response.data.data.access_token);
       }
-      // Guardar datos del usuario
-      await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
 
-      console.log('Login successful:', response.data.user);
+      console.log('Login successful');
       navigation.navigate('Home');
     } else {
       // Manejar errores específicos del backend
