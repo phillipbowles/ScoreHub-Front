@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { apiService } from '../../utils/api';
 import { RootStackParamList, RegisterFormData } from '../../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -30,6 +31,17 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     acceptTerms: false
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  const clearStorage = async () => {
+    try {
+      await AsyncStorage.clear();
+      Alert.alert('✅ Storage Limpiado', 'Token antiguo eliminado. Ahora puedes registrarte.');
+      console.log('✅ AsyncStorage cleared');
+    } catch (error) {
+      console.error('Error clearing storage:', error);
+      Alert.alert('Error', 'No se pudo limpiar el storage');
+    }
+  };
 
   const handleRegister = async () => {
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
@@ -86,12 +98,12 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView 
-        className="flex-1" 
+      <KeyboardAvoidingView
+        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView className="flex-1 px-8" showsVerticalScrollIndicator={false}>
-          <View className="items-center mt-10 mb-12">
+          <View className="items-center mt-10 mb-8">
             <Text className="text-4xl font-bold text-black mb-2">
               Crear Cuenta
             </Text>
@@ -99,6 +111,16 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               Únete a Score Hub
             </Text>
           </View>
+
+          {/* Botón temporal para limpiar storage */}
+          <TouchableOpacity
+            onPress={clearStorage}
+            className="items-center mb-4 py-2 bg-red-100 rounded-lg"
+          >
+            <Text className="text-sm text-red-600 font-medium">
+              🗑️ Limpiar Token Antiguo (Debug)
+            </Text>
+          </TouchableOpacity>
 
           <View className="mb-8">
             <View className="mb-5">
