@@ -44,3 +44,6 @@ yarn-error.*
 .env
 .env.local
 .env.production
+
+# Auto-generated API configuration
+src/config/api-config.ts

@@ -32,16 +32,16 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const clearStorage = async () => {
-    try {
-      await AsyncStorage.clear();
-      Alert.alert('✅ Storage Limpiado', 'Token antiguo eliminado. Ahora puedes registrarte.');
-      console.log('✅ AsyncStorage cleared');
-    } catch (error) {
-      console.error('Error clearing storage:', error);
-      Alert.alert('Error', 'No se pudo limpiar el storage');
-    }
-  };
+  // const clearStorage = async () => {
+  //   try {
+  //     await AsyncStorage.clear();
+  //     Alert.alert('✅ Storage Limpiado', 'Token antiguo eliminado. Ahora puedes registrarte.');
+  //     console.log('✅ AsyncStorage cleared');
+  //   } catch (error) {
+  //     console.error('Error clearing storage:', error);
+  //     Alert.alert('Error', 'No se pudo limpiar el storage');
+  //   }
+  // };
 
   const handleRegister = async () => {
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
@@ -75,8 +75,8 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           {
             text: 'OK',
             onPress: () => {
-              console.log('Navigating to Login screen');
-              navigation.navigate('Login');
+              console.log('Navigating to Home screen');
+              navigation.navigate('Home');
             }
           }
         ]);
@@ -112,7 +112,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* Botón temporal para limpiar storage */}
+          {/* Botón temporal para limpiar storage
           <TouchableOpacity
             onPress={clearStorage}
             className="items-center mb-4 py-2 bg-red-100 rounded-lg"
@@ -120,7 +120,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <Text className="text-sm text-red-600 font-medium">
               🗑️ Limpiar Token Antiguo (Debug)
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <View className="mb-8">
             <View className="mb-5">
