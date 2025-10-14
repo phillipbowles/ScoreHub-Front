@@ -5,14 +5,25 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import {
+  UserPlus,
+  User,
+  UserCircle,
+  X,
+  Crown,
+  Check,
+  Users,
+} from 'phosphor-react-native';
 import { RootStackParamList, GamePlayer } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { PlayerAvatar } from '../../components/common/PlayerAvatar';
+import { InputField } from '../../components/common/InputField';
 
 type AddPlayersScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AddPlayers'>;
 type AddPlayersScreenRouteProp = RouteProp<RootStackParamList, 'AddPlayers'>;
@@ -22,7 +33,10 @@ interface Props {
   route: AddPlayersScreenRouteProp;
 }
 
-const playerColors = ['#1c1c1e', '#ff6b35', '#34c759', '#007aff', '#ff3b30', '#8e44ad', '#f39c12', '#e74c3c'];
+const playerColors = [
+  '#1c1c1e', '#3b82f6', '#10b981', '#f59e0b', 
+  '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'
+];
 
 export const AddPlayersScreen: React.FC<Props> = ({ navigation, route }) => {
   const { selectedGame } = route.params;
@@ -77,74 +91,101 @@ export const AddPlayersScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
-    navigation.navigate('GameConfig', { 
-      selectedGame, 
-      players 
-    });
+    navigation.navigate('GameConfig', { selectedGame, players });
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="flex-row items-center py-4 mb-6">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="w-10 h-10 bg-gray-100 rounded-xl items-center justify-center mr-4"
-          >
-            <Text className="text-lg text-black">←</Text>
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-black">Agregar Jugadores</Text>
-        </View>
+        <ScreenHeader
+          title="Agregar Jugadores"
+          subtitle="Selecciona quién jugará"
+          rightIcon={<Users size={24} color="#3b82f6" weight="fill" />}
+        />
 
         {/* Juego Seleccionado */}
-        <Card className="bg-gray-50 mb-6 flex-row items-center" padding="medium">
-          <View 
-            className="w-12 h-12 rounded-xl items-center justify-center mr-4"
-            style={{ backgroundColor: selectedGame.color }}
-          >
-            <Text className="text-2xl">{selectedGame.icon}</Text>
-          </View>
-          <View>
-            <Text className="text-base font-semibold text-black">{selectedGame.name}</Text>
-            <Text className="text-sm text-gray-500">
-              {selectedGame.minPlayers}-{selectedGame.maxPlayers} jugadores
-            </Text>
+        <Card className="bg-white mb-6" padding="medium">
+          <View className="flex-row items-center">
+            <View 
+              className="w-12 h-12 rounded-xl items-center justify-center mr-4"
+              style={{ backgroundColor: selectedGame.color }}
+            >
+              <Text className="text-2xl">{selectedGame.icon}</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-base font-semibold text-black">{selectedGame.name}</Text>
+              <View className="flex-row items-center mt-1">
+                <Users size={14} color="#6b7280" weight="bold" />
+                <Text className="text-sm text-gray-500 ml-1">
+                  {selectedGame.minPlayers}-{selectedGame.maxPlayers} jugadores
+                </Text>
+              </View>
+            </View>
           </View>
         </Card>
 
         {/* Lista de Jugadores */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-black mb-4">
-            Jugadores ({players.length}/{selectedGame.maxPlayers})
-          </Text>
-          
-          {players.map((player) => (
-            <View key={player.id} className="flex-row items-center bg-gray-100 rounded-xl p-4 mb-3">
-              <View 
-                className="w-12 h-12 rounded-full items-center justify-center mr-4"
-                style={{ backgroundColor: player.color }}
-              >
-                <Text className="text-white text-lg font-bold">{player.avatar}</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-black">
-                  {player.name}{player.isHost ? ' (Tú)' : ''}
-                </Text>
-                <Text className="text-sm text-gray-500">
-                  {player.isHost ? 'Anfitrión' : player.isGuest ? 'Invitado' : 'Confirmado'}
-                </Text>
-              </View>
-              {!player.isHost && (
-                <TouchableOpacity
-                  onPress={() => removePlayer(player.id)}
-                  className="w-8 h-8 bg-red-500 rounded-lg items-center justify-center"
-                >
-                  <Text className="text-white font-bold">×</Text>
-                </TouchableOpacity>
-              )}
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-semibold text-black">Jugadores</Text>
+            <View className="bg-black px-3 py-1 rounded-full">
+              <Text className="text-white text-sm font-semibold">
+                {players.length}/{selectedGame.maxPlayers}
+              </Text>
             </View>
-          ))}
+          </View>
+          
+          <View className="space-y-3">
+            {players.map((player) => (
+              <Card key={player.id} padding="medium">
+                <View className="flex-row items-center">
+                  <PlayerAvatar
+                    avatar={player.avatar}
+                    color={player.color}
+                    size="medium"
+                  />
+                  
+                  <View className="flex-1 ml-3">
+                    <View className="flex-row items-center">
+                      <Text className="text-base font-semibold text-black">
+                        {player.name}
+                      </Text>
+                      {player.isHost && (
+                        <View className="ml-2 bg-yellow-100 px-2 py-0.5 rounded-full flex-row items-center">
+                          <Crown size={12} color="#f59e0b" weight="fill" />
+                          <Text className="text-xs font-semibold text-yellow-700 ml-1">
+                            Anfitrión
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View className="flex-row items-center mt-1">
+                      {player.isGuest ? (
+                        <>
+                          <UserCircle size={14} color="#6b7280" weight="fill" />
+                          <Text className="text-sm text-gray-500 ml-1">Invitado</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={14} color="#10b981" weight="bold" />
+                          <Text className="text-sm text-gray-500 ml-1">Confirmado</Text>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                  
+                  {!player.isHost && (
+                    <TouchableOpacity
+                      onPress={() => removePlayer(player.id)}
+                      className="w-8 h-8 bg-red-500 rounded-lg items-center justify-center"
+                    >
+                      <X size={18} color="#ffffff" weight="bold" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </Card>
+            ))}
+          </View>
         </View>
 
         {/* Agregar Jugador */}
@@ -153,65 +194,71 @@ export const AddPlayersScreen: React.FC<Props> = ({ navigation, route }) => {
             {!showAddOptions ? (
               <TouchableOpacity
                 onPress={() => setShowAddOptions(true)}
-                className="w-full py-4 border-2 border-dashed border-blue-500 rounded-xl"
+                className="w-full"
+                activeOpacity={0.7}
               >
-                <Text className="text-center text-blue-500 text-base font-semibold">
-                  + Agregar Jugador
-                </Text>
+                <Card className="border-2 border-dashed border-blue-500 bg-blue-50" padding="medium">
+                  <View className="flex-row items-center justify-center">
+                    <UserPlus size={20} color="#3b82f6" weight="bold" />
+                    <Text className="text-blue-500 text-base font-semibold ml-2">
+                      Agregar Jugador
+                    </Text>
+                  </View>
+                </Card>
               </TouchableOpacity>
             ) : (
-              <Card className="border-2 border-gray-100" padding="none">
-                <TouchableOpacity
-                  onPress={() => setNewPlayerType('user')}
-                  className={`flex-row items-center p-4 border-b border-gray-100 ${
-                    newPlayerType === 'user' ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <View className="w-10 h-10 bg-blue-500 rounded-lg items-center justify-center mr-4">
-                    <Text className="text-white text-lg">👤</Text>
-                  </View>
-                  <View>
-                    <Text className="text-base font-semibold text-black">
-                      Ingresar Nombre de Usuario
-                    </Text>
-                    <Text className="text-sm text-gray-500">Usuario registrado</Text>
-                  </View>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  onPress={() => setNewPlayerType('guest')}
-                  className={`flex-row items-center p-4 ${
-                    newPlayerType === 'guest' ? 'bg-green-50' : ''
-                  }`}
-                >
-                  <View className="w-10 h-10 bg-green-500 rounded-lg items-center justify-center mr-4">
-                    <Text className="text-white text-lg">🎭</Text>
-                  </View>
-                  <View>
-                    <Text className="text-base font-semibold text-black">
-                      Ingresar como Invitado
-                    </Text>
-                    <Text className="text-sm text-gray-500">Sin registro necesario</Text>
-                  </View>
-                </TouchableOpacity>
-              </Card>
-            )}
+              <View className="space-y-3">
+                <Card padding="none">
+                  <TouchableOpacity
+                    onPress={() => setNewPlayerType('user')}
+                    className={`flex-row items-center p-4 border-b border-gray-100 ${
+                      newPlayerType === 'user' ? 'bg-blue-50' : ''
+                    }`}
+                    activeOpacity={0.7}
+                  >
+                    <View className="w-10 h-10 bg-blue-500 rounded-lg items-center justify-center mr-3">
+                      <User size={20} color="#ffffff" weight="bold" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-base font-semibold text-black">
+                        Usuario Registrado
+                      </Text>
+                      <Text className="text-sm text-gray-500">Ingresa nombre de usuario</Text>
+                    </View>
+                    {newPlayerType === 'user' && (
+                      <Check size={24} color="#3b82f6" weight="bold" />
+                    )}
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    onPress={() => setNewPlayerType('guest')}
+                    className={`flex-row items-center p-4 ${
+                      newPlayerType === 'guest' ? 'bg-green-50' : ''
+                    }`}
+                    activeOpacity={0.7}
+                  >
+                    <View className="w-10 h-10 bg-green-500 rounded-lg items-center justify-center mr-3">
+                      <UserCircle size={20} color="#ffffff" weight="bold" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-base font-semibold text-black">Invitado</Text>
+                      <Text className="text-sm text-gray-500">Sin registro necesario</Text>
+                    </View>
+                    {newPlayerType === 'guest' && (
+                      <Check size={24} color="#10b981" weight="bold" />
+                    )}
+                  </TouchableOpacity>
+                </Card>
 
-            {showAddOptions && (
-              <View className="mt-4 space-y-3">
-                <TextInput
-                  className="w-full px-4 py-4 bg-gray-100 rounded-xl text-base text-black"
+                <InputField
+                  label="Nombre del jugador"
                   placeholder={newPlayerType === 'user' ? 'Nombre de usuario' : 'Nombre del invitado'}
-                  placeholderTextColor="#8E8E93"
                   value={newPlayerName}
                   onChangeText={setNewPlayerName}
                 />
-                <View className="flex-row space-x-3">
-                  <Button
-                    title="Agregar"
-                    onPress={addPlayer}
-                    className="flex-1"
-                  />
+                
+                <View className="flex-row gap-3">
+                  <Button title="Agregar" onPress={addPlayer} className="flex-1" />
                   <Button
                     title="Cancelar"
                     onPress={() => {
