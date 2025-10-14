@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-} from 'react-native';
+import { View, SafeAreaView, ScrollView, Alert, Text } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import {
+  Trophy,
+  Clock,
+  Target,
+  Lock,
+  Globe,
+  GameController,
+  Checks,
+} from 'phosphor-react-native';
 import { RootStackParamList, GameSetupConfig } from '../../types';
 import { Button } from '../../components/ui/Button';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { InputField } from '../../components/common/InputField';
+import { SettingItem } from '../../components/common/SettingItem';
 import { Card } from '../../components/ui/Card';
+import { PlayerAvatar } from '../../components/common/PlayerAvatar';
 
 type GameConfigScreenNavigationProp = StackNavigationProp<RootStackParamList, 'GameConfig'>;
 type GameConfigScreenRouteProp = RouteProp<RootStackParamList, 'GameConfig'>;
@@ -51,7 +56,9 @@ export const GameConfigScreen: React.FC<Props> = ({ navigation, route }) => {
       hasRounds: config.hasRounds,
     };
 
-    navigation.navigate('Game', { config: gameConfig });
+    // TODO: Guardar la configuración del juego
+    // Por ahora, volver a Home con navbar
+    navigation.navigate('Home');
   };
 
   const handleSaveAsDraft = () => {
@@ -60,244 +67,128 @@ export const GameConfigScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="flex-row items-center py-4 mb-6">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="w-10 h-10 bg-gray-100 rounded-xl items-center justify-center mr-4"
-          >
-            <Text className="text-lg text-black">←</Text>
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-black">Configuración</Text>
-        </View>
+        <ScreenHeader
+          title="Configuración"
+          subtitle="Ajusta las reglas del juego"
+          rightIcon={<Checks size={24} color="#10b981" weight="bold" />}
+        />
 
         {/* Resumen del Juego */}
-        <Card className="bg-gray-50 mb-6" padding="large">
+        <Card className="bg-white mb-6" padding="large">
           <View className="flex-row items-center mb-4">
             <View 
-              className="w-12 h-12 rounded-xl items-center justify-center mr-4"
+              className="w-14 h-14 rounded-2xl items-center justify-center mr-4"
               style={{ backgroundColor: selectedGame.color }}
             >
-              <Text className="text-2xl">{selectedGame.icon}</Text>
+              <Text className="text-3xl">{selectedGame.icon}</Text>
             </View>
-            <View>
-              <Text className="text-lg font-bold text-black">{selectedGame.name}</Text>
+            <View className="flex-1">
+              <Text className="text-xl font-bold text-black mb-1">
+                {selectedGame.name}
+              </Text>
               <Text className="text-sm text-gray-500">
                 {players.length} jugadores confirmados
               </Text>
             </View>
           </View>
-          <View className="flex-row space-x-2">
-            {players.map((player, index) => (
-              <View
+          
+          <View className="flex-row items-center gap-2">
+            {players.map((player) => (
+              <PlayerAvatar
                 key={player.id}
-                className="w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: player.color }}
-              >
-                <Text className="text-white text-xs font-bold">{player.avatar}</Text>
-              </View>
+                avatar={player.avatar}
+                color={player.color}
+                size="small"
+                showBorder
+              />
             ))}
           </View>
         </Card>
 
-        {/* Configuración de Partida */}
-        <View className="mb-8">
-          <Text className="text-lg font-semibold text-black mb-5">
-            Configuración de Partida
-          </Text>
-          
-          {/* Nombre de la Partida */}
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-black mb-2">
-              Nombre de la Partida
-            </Text>
-            <TextInput
-              className="w-full px-4 py-4 bg-gray-100 rounded-xl text-base text-black"
-              placeholder="Nombre de la partida"
-              placeholderTextColor="#8E8E93"
-              value={config.gameName}
-              onChangeText={(text) => updateConfig('gameName', text)}
-            />
-          </View>
+        <InputField
+          label="Nombre de la Partida"
+          placeholder="Nombre de la partida"
+          value={config.gameName}
+          onChangeText={(text) => updateConfig('gameName', text)}
+        />
 
-          {/* Puntaje por Rondas */}
-          <View className="mb-4">
-            <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-              <View>
-                <Text className="text-base font-semibold text-black">
-                  Puntaje por Rondas
-                </Text>
-                <Text className="text-xs text-gray-500 mt-1">
-                  Acumular puntos cada ronda
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => updateConfig('hasRounds', !config.hasRounds)}
-                className={`w-12 h-7 rounded-full relative ${
-                  config.hasRounds ? 'bg-black' : 'bg-gray-300'
-                }`}
-              >
-                <View
-                  className={`w-6 h-6 bg-white rounded-full absolute top-0.5 transition-all duration-200 ${
-                    config.hasRounds ? 'left-5.5' : 'left-0.5'
-                  }`}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+        <SettingItem
+          icon={Trophy}
+          iconColor="#f59e0b"
+          iconBgColor="#fef3c7"
+          label="Puntaje por Rondas"
+          description="Acumular puntos cada ronda"
+          type="toggle"
+          value={config.hasRounds}
+          onValueChange={(val) => updateConfig('hasRounds', val)}
+        />
 
-          {/* Número de Rondas (visible solo si hasRounds está activo) */}
-          {config.hasRounds && (
-            <View className="mb-5">
-              <Text className="text-sm font-semibold text-black mb-2">
-                Número de Rondas
-              </Text>
-              <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-                <Text className="text-base text-black">Total de rondas</Text>
-                <View className="flex-row items-center">
-                  <TouchableOpacity
-                    onPress={() => config.numberOfRounds > 1 && updateConfig('numberOfRounds', config.numberOfRounds - 1)}
-                    className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                  >
-                    <Text className="text-white text-lg font-semibold">-</Text>
-                  </TouchableOpacity>
-                  <Text className="text-lg font-bold text-black mx-5 min-w-[30px] text-center">
-                    {config.numberOfRounds}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => updateConfig('numberOfRounds', config.numberOfRounds + 1)}
-                    className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                  >
-                    <Text className="text-white text-lg font-semibold">+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
+        {config.hasRounds && (
+          <SettingItem
+            icon={GameController}
+            iconColor="#6b7280"
+            iconBgColor="#f3f4f6"
+            label="Número de rondas"
+            type="counter"
+            value={config.numberOfRounds}
+            onValueChange={(val) => updateConfig('numberOfRounds', val)}
+            counterMin={1}
+          />
+        )}
 
-          {/* Límite de Tiempo */}
-          <View className="mb-4">
-            <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-              <View>
-                <Text className="text-base font-semibold text-black">
-                  Límite de Tiempo
-                </Text>
-                <Text className="text-xs text-gray-500 mt-1">
-                  Tiempo máximo por turno
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => updateConfig('hasTimeLimit', !config.hasTimeLimit)}
-                className={`w-12 h-7 rounded-full relative ${
-                  config.hasTimeLimit ? 'bg-black' : 'bg-gray-300'
-                }`}
-              >
-                <View
-                  className={`w-6 h-6 bg-white rounded-full absolute top-0.5 transition-all duration-200 ${
-                    config.hasTimeLimit ? 'left-5.5' : 'left-0.5'
-                  }`}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+        <SettingItem
+          icon={Clock}
+          iconColor="#3b82f6"
+          iconBgColor="#dbeafe"
+          label="Límite de Tiempo"
+          description="Tiempo máximo por turno"
+          type="toggle"
+          value={config.hasTimeLimit}
+          onValueChange={(val) => updateConfig('hasTimeLimit', val)}
+        />
 
-          {/* Tiempo por Turno (visible solo si hasTimeLimit está activo) */}
-          {config.hasTimeLimit && (
-            <View className="mb-5">
-              <Text className="text-sm font-semibold text-black mb-2">
-                Tiempo por Turno (minutos)
-              </Text>
-              <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-                <Text className="text-base text-black">Duración máxima</Text>
-                <View className="flex-row items-center">
-                  <TouchableOpacity
-                    onPress={() => config.timePerTurn > 1 && updateConfig('timePerTurn', config.timePerTurn - 1)}
-                    className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                  >
-                    <Text className="text-white text-lg font-semibold">-</Text>
-                  </TouchableOpacity>
-                  <Text className="text-lg font-bold text-black mx-5 min-w-[30px] text-center">
-                    {config.timePerTurn}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => updateConfig('timePerTurn', config.timePerTurn + 1)}
-                    className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                  >
-                    <Text className="text-white text-lg font-semibold">+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
+        {config.hasTimeLimit && (
+          <SettingItem
+            icon={Clock}
+            iconColor="#6b7280"
+            iconBgColor="#f3f4f6"
+            label="Minutos por turno"
+            type="counter"
+            value={config.timePerTurn}
+            onValueChange={(val) => updateConfig('timePerTurn', val)}
+            counterMin={1}
+          />
+        )}
 
-          {/* Puntos para Ganar */}
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-black mb-2">
-              Puntos para Ganar
-            </Text>
-            <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-              <Text className="text-base text-black">Puntos objetivo</Text>
-              <View className="flex-row items-center">
-                <TouchableOpacity
-                  onPress={() => config.pointsToWin > 100 && updateConfig('pointsToWin', config.pointsToWin - 50)}
-                  className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                >
-                  <Text className="text-white text-lg font-semibold">-</Text>
-                </TouchableOpacity>
-                <Text className="text-lg font-bold text-black mx-5 min-w-[50px] text-center">
-                  {config.pointsToWin}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => updateConfig('pointsToWin', config.pointsToWin + 50)}
-                  className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                >
-                  <Text className="text-white text-lg font-semibold">+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+        <SettingItem
+          icon={Target}
+          iconColor="#6b7280"
+          iconBgColor="#f3f4f6"
+          label="Puntos para ganar"
+          type="counter"
+          value={config.pointsToWin}
+          onValueChange={(val) => updateConfig('pointsToWin', val)}
+          counterMin={100}
+          counterStep={50}
+        />
 
-          {/* Partida Privada */}
-          <View className="mb-4">
-            <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-              <View>
-                <Text className="text-base font-semibold text-black">
-                  Partida Privada
-                </Text>
-                <Text className="text-xs text-gray-500 mt-1">
-                  Solo jugadores invitados
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => updateConfig('isPrivate', !config.isPrivate)}
-                className={`w-12 h-7 rounded-full relative ${
-                  config.isPrivate ? 'bg-black' : 'bg-gray-300'
-                }`}
-              >
-                <View
-                  className={`w-6 h-6 bg-white rounded-full absolute top-0.5 transition-all duration-200 ${
-                    config.isPrivate ? 'left-5.5' : 'left-0.5'
-                  }`}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+        <SettingItem
+          icon={config.isPrivate ? Lock : Globe}
+          iconColor={config.isPrivate ? '#ef4444' : '#10b981'}
+          iconBgColor={config.isPrivate ? '#fee2e2' : '#d1fae5'}
+          label={config.isPrivate ? 'Partida Privada' : 'Partida Pública'}
+          description={config.isPrivate ? 'Solo jugadores invitados' : 'Cualquiera puede unirse'}
+          type="toggle"
+          value={config.isPrivate}
+          onValueChange={(val) => updateConfig('isPrivate', val)}
+        />
+
+        <View className="mb-8 mt-4 space-y-3">
+          <Button title="Iniciar Partida" onPress={handleStartGame} />
+          <Button title="Guardar Borrador" onPress={handleSaveAsDraft} variant="secondary" />
         </View>
-
-        <Button
-          title="Iniciar Partida"
-          onPress={handleStartGame}
-          className="mb-4"
-        />
-        
-        <Button
-          title="Guardar como Borrador"
-          onPress={handleSaveAsDraft}
-          variant="secondary"
-          className="mb-8"
-        />
       </ScrollView>
     </SafeAreaView>
   );

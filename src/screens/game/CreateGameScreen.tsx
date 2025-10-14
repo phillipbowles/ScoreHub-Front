@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert
-} from 'react-native';
+import { View, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, CustomGame } from '../../types';
+import {
+  Trophy,
+  Clock,
+  Users,
+  Sparkle,
+  Target,
+  Flag
+} from 'phosphor-react-native';
+import { RootStackParamList } from '../../types';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { InputField } from '../../components/common/InputField';
+import { SettingItem } from '../../components/common/SettingItem';
+import { IconSelectorModal } from '../../components/game/IconSelectorModal';
 import { apiService } from '../../utils/api';
 
 type CreateGameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateGame'>;
@@ -20,35 +23,51 @@ interface Props {
   navigation: CreateGameScreenNavigationProp;
 }
 
-const gameIcons = [
-  { emoji: '🃏', label: 'Cartas' },
-  { emoji: '🎲', label: 'Dados' },
-  { emoji: '🏆', label: 'Copa' },
-  { emoji: '⚽', label: 'Deporte' },
-  { emoji: '🎯', label: 'Diana' },
-  { emoji: '🎮', label: 'Gaming' },
-];
+type EndingType = 'points' | 'rounds';
+type PointsType = 'max' | 'min';
 
 export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    icon: '🃏',
+    selectedIcon: 'Trophy',
+    selectedColor: '#3b82f6',
+    selectedBgColor: '#dbeafe',
     rules: '',
-    maxPlayers: 4,
-    minPlayers: 2,
-    hasRounds: true,
-    hasTimeLimit: false,
-    isPublic: true,
-    customIcon: '',
-    showCustomIcon: false,
-    rulesType: 'text' // 'text' or 'pdf'
+    hasTeams: false,
+    minTeamLength: 2,
+    maxTeamLength: 4,
+    numberOfPlayers: 4,
+    rounds: 5,
+    hasTimer: false,
+    timerDuration: 60, // segundos
+    endingType: 'points' as EndingType,
+    pointsType: 'max' as PointsType,
+    pointsTarget: 100,
   });
+  
+  const [showIconModal, setShowIconModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleIconSelect = (iconName: string, color: string, bgColor: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedIcon: iconName,
+      selectedColor: color,
+      selectedBgColor: bgColor,
+    }));
+    setShowIconModal(false);
+  };
+
   const handleCreateGame = async () => {
+    // Validaciones
     if (!formData.name.trim()) {
       Alert.alert('Error', 'El nombre del juego es obligatorio');
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      Alert.alert('Error', 'La descripción es obligatoria');
       return;
     }
 
@@ -57,41 +76,47 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    setIsLoading(true);
+    // Validación de equipos
+    if (formData.hasTeams && formData.minTeamLength > formData.maxTeamLength) {
+      Alert.alert('Error', 'El mínimo de jugadores por equipo no puede ser mayor al máximo');
+      return;
+    }
 
+    setIsLoading(true);
     try {
       const gameData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        icon: formData.showCustomIcon ? formData.customIcon : formData.icon,
+        icon: formData.selectedIcon,
+        icon_color: formData.selectedColor,
+        icon_bg_color: formData.selectedBgColor,
         rules: formData.rules.trim(),
-        max_players: formData.maxPlayers,
-        min_players: formData.minPlayers,
-        has_rounds: formData.hasRounds,
-        has_time_limit: formData.hasTimeLimit,
-        is_public: formData.isPublic,
+        number_of_players: formData.numberOfPlayers,
+        has_teams: formData.hasTeams,
+        min_team_length: formData.hasTeams ? formData.minTeamLength : 0,
+        max_team_length: formData.hasTeams ? formData.maxTeamLength : 0,
+        has_turns: formData.hasTimer,
+        turn_duration: formData.hasTimer ? formData.timerDuration : 0,
+        round_duration: formData.hasTimer ? formData.timerDuration : 0,
+        rounds: formData.rounds,
+        ending: formData.endingType,
+        points_type: formData.endingType === 'points' ? formData.pointsType : null,
+        points_target: formData.endingType === 'points' ? formData.pointsTarget : null,
       };
 
       const response = await apiService.createGame(gameData);
 
       if (response.success) {
         Alert.alert(
-          '¡Juego Creado!',
+          'Juego Creado',
           `${formData.name} ha sido creado exitosamente`,
-          [
-            { text: 'OK', onPress: () => navigation.navigate('Home') }
-          ]
+          [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
         );
       } else {
-        const errorMessage = response.error || 'Error al crear el juego';
-        Alert.alert('Error', errorMessage);
+        Alert.alert('Error', response.error || 'Error al crear el juego');
       }
     } catch (error) {
-      console.error('Create game network error:', error);
-      Alert.alert(
-        'Error de Conexión',
-        'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
-      );
+      Alert.alert('Error de Conexión', 'Verifica tu conexión a internet.');
     } finally {
       setIsLoading(false);
     }
@@ -101,250 +126,220 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const selectIcon = (emoji: string) => {
-    updateFormData('icon', emoji);
-    updateFormData('showCustomIcon', false);
-  };
-
-  const toggleCustomIcon = () => {
-    updateFormData('showCustomIcon', !formData.showCustomIcon);
-    if (!formData.showCustomIcon) {
-      updateFormData('customIcon', '');
-    }
-  };
-
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="flex-row items-center py-4 mb-6">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="w-10 h-10 bg-gray-100 rounded-xl items-center justify-center mr-4"
-          >
-            <Text className="text-lg text-black">←</Text>
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-black">Crear Juego</Text>
-        </View>
+        <ScreenHeader
+          title="Crear Juego"
+          subtitle="Personaliza tu juego"
+          rightIcon={<Sparkle size={24} color="#3b82f6" weight="fill" />}
+        />
 
-        {/* Información Básica */}
-        <View className="mb-8">
-          <Text className="text-lg font-semibold text-black mb-5">
-            Información Básica
-          </Text>
-          
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-black mb-2">
-              Nombre del Juego
-            </Text>
-            <TextInput
-              className="w-full px-5 py-4 bg-gray-100 rounded-xl text-base text-black"
-              placeholder="Ej: UNO, Monopoly, Truco..."
-              placeholderTextColor="#8E8E93"
-              value={formData.name}
-              onChangeText={(text) => updateFormData('name', text)}
+        {/* Nombre */}
+        <InputField
+          label="Nombre del Juego"
+          placeholder="Ej: UNO, Monopoly, Truco..."
+          value={formData.name}
+          onChangeText={(text) => updateFormData('name', text)}
+          required
+        />
+
+        {/* Selector de Icono */}
+        <SettingItem
+          icon={Sparkle}
+          iconColor={formData.selectedColor}
+          iconBgColor={formData.selectedBgColor}
+          label="Icono y Color"
+          description="Toca para elegir"
+          type="navigation"
+          onPress={() => setShowIconModal(true)}
+        />
+
+        {/* Descripción */}
+        <InputField
+          label="Descripción"
+          placeholder="Describe las características especiales..."
+          value={formData.description}
+          onChangeText={(text) => updateFormData('description', text)}
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+          required
+        />
+
+        {/* Reglas */}
+        <InputField
+          label="Reglas del Juego"
+          placeholder="Escribe las reglas del juego aquí..."
+          value={formData.rules}
+          onChangeText={(text) => updateFormData('rules', text)}
+          multiline
+          numberOfLines={6}
+          textAlignVertical="top"
+          required
+        />
+
+        {/* Equipos o Individual */}
+        <SettingItem
+          icon={Users}
+          iconColor="#8b5cf6"
+          iconBgColor="#ede9fe"
+          label="Juego por Equipos"
+          description={formData.hasTeams ? 'Los jugadores juegan en equipos' : 'Cada jugador juega individualmente'}
+          type="toggle"
+          value={formData.hasTeams}
+          onValueChange={(val) => updateFormData('hasTeams', val)}
+        />
+
+        {/* Si es por equipos */}
+        {formData.hasTeams && (
+          <>
+            <SettingItem
+              icon={Users}
+              iconColor="#6b7280"
+              iconBgColor="#f3f4f6"
+              label="Jugadores mínimos por equipo"
+              type="counter"
+              value={formData.minTeamLength}
+              onValueChange={(val) => updateFormData('minTeamLength', val)}
+              counterMin={1}
+              counterMax={10}
             />
-          </View>
-
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-black mb-2">
-              Descripción (Opcional)
-            </Text>
-            <TextInput
-              className="w-full px-5 py-4 bg-gray-100 rounded-xl text-base text-black"
-              placeholder="Describe las reglas o características especiales..."
-              placeholderTextColor="#8E8E93"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              value={formData.description}
-              onChangeText={(text) => updateFormData('description', text)}
-            />
-          </View>
-        </View>
-
-        {/* Icono del Juego */}
-        <View className="mb-8">
-          <Text className="text-lg font-semibold text-black mb-5">
-            Icono del Juego
-          </Text>
-          
-          <View className="flex-row flex-wrap gap-3 mb-4">
-            {gameIcons.map((icon, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => selectIcon(icon.emoji)}
-                className={`flex-1 min-w-[90px] max-w-[90px] bg-gray-100 rounded-2xl p-4 items-center ${
-                  formData.icon === icon.emoji && !formData.showCustomIcon 
-                    ? 'bg-black' 
-                    : ''
-                }`}
-              >
-                <Text className="text-3xl mb-2">{icon.emoji}</Text>
-                <Text className={`text-sm font-semibold ${
-                  formData.icon === icon.emoji && !formData.showCustomIcon 
-                    ? 'text-white' 
-                    : 'text-black'
-                }`}>
-                  {icon.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
             
-            <TouchableOpacity
-              onPress={toggleCustomIcon}
-              className={`flex-1 min-w-[90px] max-w-[90px] bg-gray-100 border-2 border-dashed border-gray-400 rounded-2xl p-4 items-center ${
-                formData.showCustomIcon ? 'border-black bg-gray-200' : ''
-              }`}
-            >
-              <Text className="text-3xl mb-2">➕</Text>
-              <Text className="text-sm font-semibold text-black">Personalizar</Text>
-            </TouchableOpacity>
-          </View>
-
-          {formData.showCustomIcon && (
-            <TextInput
-              className="w-full px-5 py-4 bg-gray-100 rounded-xl text-2xl text-center"
-              placeholder="Ingresa cualquier emoji 🎮"
-              placeholderTextColor="#8E8E93"
-              maxLength={2}
-              value={formData.customIcon}
-              onChangeText={(text) => {
-                updateFormData('customIcon', text);
-                updateFormData('icon', text);
-              }}
+            <SettingItem
+              icon={Users}
+              iconColor="#6b7280"
+              iconBgColor="#f3f4f6"
+              label="Jugadores máximos por equipo"
+              type="counter"
+              value={formData.maxTeamLength}
+              onValueChange={(val) => updateFormData('maxTeamLength', val)}
+              counterMin={formData.minTeamLength}
+              counterMax={20}
             />
-          )}
-        </View>
+          </>
+        )}
 
-        {/* Reglas del Juego */}
-        <View className="mb-8">
-          <Text className="text-lg font-semibold text-black mb-5">
-            Reglas del Juego
-          </Text>
-          
-          <View className="flex-row mb-4">
-            <TouchableOpacity
-              onPress={() => updateFormData('rulesType', 'text')}
-              className={`flex-1 py-4 px-6 rounded-xl mr-2 ${
-                formData.rulesType === 'text' 
-                  ? 'bg-black' 
-                  : 'bg-gray-100'
-              }`}
-            >
-              <Text className={`text-center font-semibold ${
-                formData.rulesType === 'text' ? 'text-white' : 'text-black'
-              }`}>
-                📝 Escribir
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              onPress={() => updateFormData('rulesType', 'pdf')}
-              className={`flex-1 py-4 px-6 rounded-xl ml-2 ${
-                formData.rulesType === 'pdf' 
-                  ? 'bg-black' 
-                  : 'bg-gray-100'
-              }`}
-            >
-              <Text className={`text-center font-semibold ${
-                formData.rulesType === 'pdf' ? 'text-white' : 'text-black'
-              }`}>
-                📄 Subir PDF
-              </Text>
-            </TouchableOpacity>
-          </View>
+        {/* Cantidad de jugadores */}
+        <SettingItem
+          icon={Users}
+          iconColor="#6b7280"
+          iconBgColor="#f3f4f6"
+          label={formData.hasTeams ? 'Número de equipos' : 'Número de jugadores'}
+          type="counter"
+          value={formData.numberOfPlayers}
+          onValueChange={(val) => updateFormData('numberOfPlayers', val)}
+          counterMin={2}
+          counterMax={20}
+        />
 
-          {formData.rulesType === 'text' ? (
-            <TextInput
-              className="w-full px-5 py-4 bg-gray-100 rounded-xl text-base text-black"
-              placeholder="Escribe las reglas del juego aquí..."
-              placeholderTextColor="#8E8E93"
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
-              value={formData.rules}
-              onChangeText={(text) => updateFormData('rules', text)}
+        {/* Número de Rondas - Siempre visible */}
+        <SettingItem
+          icon={Trophy}
+          iconColor="#f59e0b"
+          iconBgColor="#fef3c7"
+          label="Número de Rondas"
+          description="Si no quieres rondas, dejá 1"
+          type="counter"
+          value={formData.rounds}
+          onValueChange={(val) => updateFormData('rounds', val)}
+          counterMin={1}
+          counterMax={50}
+        />
+
+        {/* Tiene Timer */}
+        <SettingItem
+          icon={Clock}
+          iconColor="#3b82f6"
+          iconBgColor="#dbeafe"
+          label="Tiempo Limitado por Turno"
+          description={formData.hasTimer ? 'Cada turno tiene límite de tiempo' : 'Sin límite de tiempo'}
+          type="toggle"
+          value={formData.hasTimer}
+          onValueChange={(val) => updateFormData('hasTimer', val)}
+        />
+
+        {/* Duración del timer */}
+        {formData.hasTimer && (
+          <SettingItem
+            icon={Clock}
+            iconColor="#3b82f6"
+            iconBgColor="#dbeafe"
+            label="Duración del Turno (segundos)"
+            type="counter"
+            value={formData.timerDuration}
+            onValueChange={(val) => updateFormData('timerDuration', val)}
+            counterMin={5}
+            counterMax={600}
+            counterStep={5}
+          />
+        )}
+
+        {/* Termina por */}
+        <SettingItem
+          icon={Flag}
+          iconColor="#ef4444"
+          iconBgColor="#fee2e2"
+          label="El Juego Termina por"
+          description={formData.endingType === 'points' ? 'Puntos alcanzados' : 'Rondas completadas'}
+          type="segmented"
+          value={formData.endingType}
+          onValueChange={(val) => updateFormData('endingType', val)}
+          segmentedOptions={[
+            { label: 'Puntos', value: 'points' },
+            { label: 'Rondas', value: 'rounds' },
+          ]}
+        />
+
+        {/* Si termina por puntos */}
+        {formData.endingType === 'points' && (
+          <>
+            <SettingItem
+              icon={Target}
+              iconColor="#8b5cf6"
+              iconBgColor="#ede9fe"
+              label="Tipo de Puntos"
+              description={formData.pointsType === 'max' ? 'Gana quien alcance el máximo' : 'Gana quien tenga el mínimo'}
+              type="segmented"
+              value={formData.pointsType}
+              onValueChange={(val) => updateFormData('pointsType', val)}
+              segmentedOptions={[
+                { label: 'Máximo', value: 'max' },
+                { label: 'Mínimo', value: 'min' },
+              ]}
             />
-          ) : (
-            <Card className="border-2 border-dashed border-gray-400 items-center" padding="large">
-              <Text className="text-4xl mb-3">📄</Text>
-              <Text className="text-base font-semibold text-black mb-1">
-                Subir archivo PDF
-              </Text>
-              <Text className="text-sm text-gray-500">Máximo 10MB</Text>
-            </Card>
-          )}
-        </View>
 
-        {/* Configuración */}
-        <View className="mb-8">
-          <Text className="text-lg font-semibold text-black mb-5">
-            Configuración
-          </Text>
-          
-          {/* Número de Jugadores */}
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-black mb-2">
-              Número de Jugadores
-            </Text>
-            <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-              <Text className="text-base text-black">Mín: 2 - Máx: 8</Text>
-              <View className="flex-row items-center">
-                <TouchableOpacity
-                  onPress={() => formData.maxPlayers > 2 && updateFormData('maxPlayers', formData.maxPlayers - 1)}
-                  className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                >
-                  <Text className="text-white text-lg font-semibold">-</Text>
-                </TouchableOpacity>
-                <Text className="text-lg font-bold text-black mx-5 min-w-[30px] text-center">
-                  {formData.maxPlayers}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => formData.maxPlayers < 8 && updateFormData('maxPlayers', formData.maxPlayers + 1)}
-                  className="w-9 h-9 bg-black rounded-lg items-center justify-center"
-                >
-                  <Text className="text-white text-lg font-semibold">+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Switches */}
-          {[
-            { key: 'hasRounds', label: 'Puntaje por rondas', value: formData.hasRounds },
-            { key: 'hasTimeLimit', label: 'Límite de tiempo', value: formData.hasTimeLimit },
-            { key: 'isPublic', label: 'Juego público', value: formData.isPublic },
-          ].map((setting) => (
-            <View key={setting.key} className="mb-4">
-              <View className="flex-row items-center justify-between bg-gray-100 rounded-xl p-4">
-                <Text className="text-base font-semibold text-black">
-                  {setting.label}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => updateFormData(setting.key, !setting.value)}
-                  className={`w-12 h-7 rounded-full relative ${
-                    setting.value ? 'bg-black' : 'bg-gray-300'
-                  }`}
-                >
-                  <View
-                    className={`w-6 h-6 bg-white rounded-full absolute top-0.5 transition-all duration-200 ${
-                      setting.value ? 'left-5.5' : 'left-0.5'
-                    }`}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
+            <SettingItem
+              icon={Target}
+              iconColor="#8b5cf6"
+              iconBgColor="#ede9fe"
+              label={`Puntos ${formData.pointsType === 'max' ? 'Máximos' : 'Mínimos'}`}
+              type="counter"
+              value={formData.pointsTarget}
+              onValueChange={(val) => updateFormData('pointsTarget', val)}
+              counterMin={1}
+              counterMax={10000}
+              counterStep={5}
+            />
+          </>
+        )}
 
         <Button
           title={isLoading ? "Creando..." : "Crear Juego"}
           onPress={handleCreateGame}
           disabled={isLoading}
-          className="mb-8"
+          className="mb-8 mt-4"
         />
       </ScrollView>
+
+      {/* Modal de selección de icono */}
+      <IconSelectorModal
+        visible={showIconModal}
+        onClose={() => setShowIconModal(false)}
+        onSelect={handleIconSelect}
+        currentIcon={formData.selectedIcon}
+        currentColor={formData.selectedColor}
+      />
     </SafeAreaView>
   );
 };
