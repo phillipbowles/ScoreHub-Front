@@ -35,31 +35,46 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   setIsLoading(true);
-  
+
   try {
+    console.log('🔐 Attempting login for:', formData.email);
+
     const response = await apiService.login({
       email: formData.email.toLowerCase().trim(),
       password: formData.password,
     });
 
+    console.log('📥 Login response:', JSON.stringify(response, null, 2));
+
     if (response.success && response.data) {
       // Guardar token del formato de respuesta del backend
-      if (response.data.data?.access_token) {
-        await AsyncStorage.setItem('userToken', response.data.data.access_token);
-      }
+      const token = response.data.data?.access_token;
 
-      console.log('Login successful');
-      navigation.navigate('Home');
+      if (token) {
+        console.log('💾 Saving token to AsyncStorage...');
+        await AsyncStorage.setItem('userToken', token);
+        console.log('✅ Token saved successfully');
+        console.log('🔑 Token preview:', token.substring(0, 30) + '...');
+
+        // Navegar a Home
+        console.log('🚀 Navigating to Home...');
+        navigation.navigate('Home');
+      } else {
+        console.error('❌ No token in response:', response.data);
+        Alert.alert('Error', 'No se recibió el token de autenticación');
+      }
     } else {
       // Manejar errores específicos del backend
       const errorMessage = response.error || 'Credenciales incorrectas';
+      console.error('❌ Login failed:', errorMessage);
       Alert.alert('Error de Login', errorMessage);
     }
   } catch (error) {
-    console.error('Login network error:', error);
+    console.error('💥 Login exception:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     Alert.alert(
-      'Error de Conexión', 
-      'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
+      'Error de Conexión',
+      `No se pudo conectar: ${error instanceof Error ? error.message : 'Error desconocido'}`
     );
   } finally {
     setIsLoading(false);

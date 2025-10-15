@@ -10,6 +10,7 @@ import {
   Flag
 } from 'phosphor-react-native';
 import { RootStackParamList } from '../../types';
+import { EndingType, CreateGameRequest } from '../../types/backend.types';
 import { Button } from '../../components/ui/Button';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { InputField } from '../../components/common/InputField';
@@ -22,9 +23,6 @@ type CreateGameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'C
 interface Props {
   navigation: CreateGameScreenNavigationProp;
 }
-
-type EndingType = 'points' | 'rounds';
-type PointsType = 'max' | 'min';
 
 export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -41,9 +39,10 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
     rounds: 5,
     hasTimer: false,
     timerDuration: 60, // segundos
-    endingType: 'points' as EndingType,
-    pointsType: 'max' as PointsType,
-    pointsTarget: 100,
+    roundDuration: 300, // 5 minutos por defecto
+    endingType: 'end_rounds' as EndingType,
+    minPoints: 0,
+    maxPoints: 100,
   });
   
   const [showIconModal, setShowIconModal] = useState(false);
@@ -84,26 +83,23 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      const gameData = {
+      const gameData: CreateGameRequest = {
         name: formData.name.trim(),
-        description: formData.description.trim(),
-        icon: formData.selectedIcon,
-        icon_color: formData.selectedColor,
-        icon_bg_color: formData.selectedBgColor,
-        rules: formData.rules.trim(),
         number_of_players: formData.numberOfPlayers,
         has_teams: formData.hasTeams,
         min_team_length: formData.hasTeams ? formData.minTeamLength : 0,
         max_team_length: formData.hasTeams ? formData.maxTeamLength : 0,
         has_turns: formData.hasTimer,
         turn_duration: formData.hasTimer ? formData.timerDuration : 0,
-        round_duration: formData.hasTimer ? formData.timerDuration : 0,
+        round_duration: formData.roundDuration,
         rounds: formData.rounds,
         ending: formData.endingType,
-        points_type: formData.endingType === 'points' ? formData.pointsType : null,
-        points_target: formData.endingType === 'points' ? formData.pointsTarget : null,
+        min_points: formData.minPoints,
+        max_points: formData.maxPoints,
+        rules: formData.rules.trim() || undefined,
       };
 
+      console.log('📤 Creating game with data:', gameData);
       const response = await apiService.createGame(gameData);
 
       if (response.success) {
@@ -275,49 +271,71 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           />
         )}
 
+        {/* Duración de Ronda */}
+        <SettingItem
+          icon={Clock}
+          iconColor="#6b7280"
+          iconBgColor="#f3f4f6"
+          label="Duración de Ronda (segundos)"
+          description="Tiempo máximo por ronda"
+          type="counter"
+          value={formData.roundDuration}
+          onValueChange={(val) => updateFormData('roundDuration', val)}
+          counterMin={30}
+          counterMax={3600}
+          counterStep={30}
+        />
+
         {/* Termina por */}
         <SettingItem
           icon={Flag}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
           label="El Juego Termina por"
-          description={formData.endingType === 'points' ? 'Puntos alcanzados' : 'Rondas completadas'}
+          description={
+            formData.endingType === 'end_rounds'
+              ? 'Rondas completadas'
+              : formData.endingType === 'reach_max_score'
+              ? 'Alcanzar puntaje máximo'
+              : 'Alcanzar puntaje mínimo'
+          }
           type="segmented"
           value={formData.endingType}
           onValueChange={(val) => updateFormData('endingType', val)}
           segmentedOptions={[
-            { label: 'Puntos', value: 'points' },
-            { label: 'Rondas', value: 'rounds' },
+            { label: 'Rondas', value: 'end_rounds' },
+            { label: 'Máx Pts', value: 'reach_max_score' },
+            { label: 'Mín Pts', value: 'reach_min_score' },
           ]}
         />
 
-        {/* Si termina por puntos */}
-        {formData.endingType === 'points' && (
+        {/* Puntos Mínimos y Máximos */}
+        {formData.endingType !== 'end_rounds' && (
           <>
             <SettingItem
               icon={Target}
-              iconColor="#8b5cf6"
-              iconBgColor="#ede9fe"
-              label="Tipo de Puntos"
-              description={formData.pointsType === 'max' ? 'Gana quien alcance el máximo' : 'Gana quien tenga el mínimo'}
-              type="segmented"
-              value={formData.pointsType}
-              onValueChange={(val) => updateFormData('pointsType', val)}
-              segmentedOptions={[
-                { label: 'Máximo', value: 'max' },
-                { label: 'Mínimo', value: 'min' },
-              ]}
+              iconColor="#10b981"
+              iconBgColor="#d1fae5"
+              label="Puntos Mínimos"
+              description="Puntaje mínimo del juego"
+              type="counter"
+              value={formData.minPoints}
+              onValueChange={(val) => updateFormData('minPoints', val)}
+              counterMin={0}
+              counterMax={formData.maxPoints - 1}
+              counterStep={5}
             />
 
             <SettingItem
               icon={Target}
-              iconColor="#8b5cf6"
-              iconBgColor="#ede9fe"
-              label={`Puntos ${formData.pointsType === 'max' ? 'Máximos' : 'Mínimos'}`}
+              iconColor="#ef4444"
+              iconBgColor="#fee2e2"
+              label="Puntos Máximos"
+              description="Puntaje máximo para ganar"
               type="counter"
-              value={formData.pointsTarget}
-              onValueChange={(val) => updateFormData('pointsTarget', val)}
-              counterMin={1}
+              value={formData.maxPoints}
+              onValueChange={(val) => updateFormData('maxPoints', val)}
+              counterMin={formData.minPoints + 1}
               counterMax={10000}
               counterStep={5}
             />

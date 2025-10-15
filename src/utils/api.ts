@@ -78,6 +78,10 @@ class ApiService {
     try {
       const token = skipAuth ? null : await this.getAuthToken();
 
+      if (!skipAuth && token) {
+        console.log(`🔑 Token: ${token.substring(0, 20)}...`);
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -200,6 +204,18 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(gameData),
     });
+  }
+
+  // MATCHES
+  async createMatch(matchData: { name: string; game_id: number }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/game-match', {
+      method: 'POST',
+      body: JSON.stringify(matchData),
+    });
+  }
+
+  async getMatch(matchId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/game-match/${matchId}`);
   }
 }
 

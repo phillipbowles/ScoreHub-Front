@@ -161,24 +161,28 @@ export type RootStackParamList = {
   // Auth
   Login: undefined;
   Register: undefined;
-  
+
   // Main App
   Home: undefined;
-  
+
   // Bottom Tab Screens
   HomeTab: undefined;
   GamesTab: undefined;
   StatsTab: undefined;
   ProfileTab: undefined;
-  
-  // Game Flow
+
+  // Game Flow (New Flow)
   CreateGame: undefined;
-  GameSetup: undefined;
   SelectGameType: undefined;
+  GameList: { gameType: 'basic' | 'community' | 'custom' | 'favorites' };
+  MatchConfig: { selectedGame: any };
+
+  // Old Game Flow (Deprecated - to be removed)
+  GameSetup: undefined;
   AddPlayers: { selectedGame: Game };
   GameConfig: { selectedGame: Game; players: GamePlayer[] };
-  Game: { config: GameSetupConfig };
-  
+  Game: { config: GameSetupConfig; gameConfig?: any };
+
   // Additional Screens
   Profile: undefined;
   Stats: undefined;
