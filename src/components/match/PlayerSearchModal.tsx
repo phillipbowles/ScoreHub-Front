@@ -56,7 +56,9 @@ export const PlayerSearchModal: React.FC<Props> = ({
     try {
       const response = await apiService.getUsers();
       if (response.success && response.data) {
-        const allUsers = response.data.data || response.data;
+        const allUsers = Array.isArray(response.data)
+          ? response.data
+          : (response.data as any).data || [];
         // Filtrar usuarios excluidos y por búsqueda
         const filtered = allUsers.filter(
           (user: User) =>
