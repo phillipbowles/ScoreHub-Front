@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Input, PasswordInput } from '../../components/ui/Input';
 import { apiService } from '../../utils/api';
 import { RootStackParamList, LoginFormData } from '../../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -51,30 +51,80 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       const token = response.data.data?.access_token;
 
       if (token) {
-        console.log('💾 Saving token to AsyncStorage...');
-        await AsyncStorage.setItem('userToken', token);
-        console.log('✅ Token saved successfully');
-        console.log('🔑 Token preview:', token.substring(0, 30) + '...');
+        try {
+          console.log('💾 Saving token to AsyncStorage...');
+          await AsyncStorage.setItem('userToken', token);
+          console.log('✅ Token saved successfully');
+          console.log('🔑 Token preview:', token.substring(0, 30) + '...');
 
-        // Navegar a Home
-        console.log('🚀 Navigating to Home...');
-        navigation.navigate('Home');
+          // Navegar a Home
+          console.log('🚀 Navigating to Home...');
+          navigation.navigate('Home');
+        } catch (storageError) {
+          console.error('❌ Error saving token:', storageError);
+          Alert.alert(
+            'Error',
+            'No se pudo guardar la sesión. Intenta nuevamente.'
+          );
+        }
       } else {
         console.error('❌ No token in response:', response.data);
         Alert.alert('Error', 'No se recibió el token de autenticación');
       }
     } else {
       // Manejar errores específicos del backend
-      const errorMessage = response.error || 'Credenciales incorrectas';
-      console.error('❌ Login failed:', errorMessage);
+      console.error('❌ Login failed:', response.error);
+
+      // El error puede ser un objeto con estructura { message, fields, code }
+      let errorMessage = 'Credenciales incorrectas';
+
+      if (response.error) {
+        if (typeof response.error === 'string') {
+          errorMessage = response.error;
+        } else if (typeof response.error === 'object' && response.error !== null) {
+          // Usar una variable con tipo seguro para evitar errores de TS
+          const errObj = response.error as { message?: unknown; fields?: unknown };
+
+          const mainMessage = typeof errObj.message === 'string'
+            ? errObj.message
+            : 'Error en el inicio de sesión';
+
+          let fieldMessages = '';
+          if (errObj.fields && typeof errObj.fields === 'object') {
+            try {
+              // Intentar extraer mensajes de campo como array de strings
+              const values = Object.values(errObj.fields as Record<string, unknown>);
+              const flattened: string[] = values
+                .flatMap(v => Array.isArray(v) ? v : [v])
+                .map(v => (v === null || v === undefined) ? '' : String(v));
+
+              const nonEmpty = flattened.filter(s => s && s.trim().length > 0);
+              if (nonEmpty.length > 0) {
+                fieldMessages = '\n' + nonEmpty.join('\n');
+              }
+            } catch (e) {
+              // Si falla la extracción, no romper la app
+              console.warn('Could not parse field errors', e);
+            }
+          }
+
+          errorMessage = mainMessage + fieldMessages;
+        }
+      }
+
       Alert.alert('Error de Login', errorMessage);
     }
   } catch (error) {
     console.error('💥 Login exception:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+
+    const errorMessage = error instanceof Error
+      ? error.message
+      : 'Error de conexión al servidor';
+
     Alert.alert(
       'Error de Conexión',
-      `No se pudo conectar: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      `No se pudo conectar al servidor. Verifica tu conexión a internet.\n\nDetalle: ${errorMessage}`
     );
   } finally {
     setIsLoading(false);
@@ -83,8 +133,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView 
-        className="flex-1" 
+      <KeyboardAvoidingView
+        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View className="flex-1 px-8">
@@ -99,7 +149,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           {/* Form */}
-          <View className="mb-8">
+          <View
+            className="mb-8"
+            nativeID="login-form"
+          >
             <View className="mb-5">
               <Input
                 placeholder="Email"
@@ -108,16 +161,25 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="username"
+                textContentType="username"
+                importantForAutofill="yes"
+                returnKeyType="next"
+                onSubmitEditing={() => {}}
               />
             </View>
 
             <View className="mb-8">
-              <Input
+              <PasswordInput
                 placeholder="Contraseña"
                 value={formData.password}
                 onChangeText={(password) => setFormData({ ...formData, password })}
-                secureTextEntry
                 autoCapitalize="none"
+                autoComplete="current-password"
+                textContentType="password"
+                importantForAutofill="yes"
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
               />
             </View>
 
@@ -128,7 +190,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               className="mb-5"
             />
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => navigation.navigate('Register')}
               className="items-center"
             >

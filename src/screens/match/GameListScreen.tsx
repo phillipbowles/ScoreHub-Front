@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -51,11 +52,55 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
         const gamesList = Array.isArray(response.data)
           ? response.data
           : (response.data as any).data || [];
+
+        console.log('📊 Total games received:', gamesList.length);
+        console.log('📊 Games data:', JSON.stringify(gamesList.slice(0, 2), null, 2)); // Mostrar primeros 2 juegos
+
+        // Filtrar juegos que no tengan id (datos inválidos)
+        const validGames = gamesList.filter((game: BackendGame) => {
+          const isValid = game.id !== undefined && game.id !== null;
+          if (!isValid) {
+            console.warn('⚠️ Game sin ID encontrado:', game);
+          }
+          return isValid;
+        });
+
+        console.log('✅ Valid games after filter:', validGames.length);
+
         // TODO: Filtrar por tipo de juego cuando el backend lo soporte
-        setGames(gamesList);
+        setGames(validGames);
+      } else {
+        console.error('❌ Error loading games:', response.error);
+
+        // El error puede ser un objeto con estructura { message, fields, code }
+        let errorMessage = 'No se pudieron cargar los juegos';
+
+        if (response.error) {
+          if (typeof response.error === 'string') {
+            errorMessage = response.error;
+          } else if (typeof response.error === 'object' && response.error !== null) {
+            // Extraer el mensaje del objeto de error
+            const errorObj = response.error as any;
+            errorMessage = errorObj.message || 'No se pudieron cargar los juegos';
+
+            // Si hay errores de campos específicos, agregarlos
+            if (errorObj.fields) {
+              const fieldErrors = Object.values(errorObj.fields).flat();
+              if (fieldErrors.length > 0) {
+                errorMessage = fieldErrors.join('\n');
+              }
+            }
+          }
+        }
+
+        Alert.alert('Error', errorMessage);
       }
     } catch (error) {
-      console.error('Error loading games:', error);
+      console.error('💥 Error loading games:', error);
+      Alert.alert(
+        'Error de Conexión',
+        'No se pudieron cargar los juegos. Verifica tu conexión.'
+      );
     } finally {
       setLoading(false);
     }
@@ -162,12 +207,12 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
         ) : (
           <View className="space-y-3 mb-8">
             {filteredGames.map((game) => (
-              <TouchableOpacity
-                key={game.id}
-                onPress={() => handleSelectGame(game)}
-                activeOpacity={0.7}
-              >
-                <Card padding="medium">
+              <View key={`game-${game.id}`}>
+                <TouchableOpacity
+                  onPress={() => handleSelectGame(game)}
+                  activeOpacity={0.7}
+                >
+                  <Card padding="medium">
                   <View className="flex-row items-start">
                     {/* Game Icon */}
                     <View
@@ -237,6 +282,7 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
                   </View>
                 </Card>
               </TouchableOpacity>
+              </View>
             ))}
           </View>
         )}

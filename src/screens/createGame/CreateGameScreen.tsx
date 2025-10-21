@@ -109,10 +109,48 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
         );
       } else {
-        Alert.alert('Error', response.error || 'Error al crear el juego');
+        console.error('❌ Error creating game:', response.error);
+
+        // El error puede ser un objeto con estructura { message, fields, code }
+        let errorMessage = 'Error al crear el juego';
+
+        if (response.error) {
+          if (typeof response.error === 'string') {
+            errorMessage = response.error;
+          } else if (typeof response.error === 'object') {
+            // Extraer el mensaje del objeto de error
+            errorMessage = (typeof response.error === 'object' && response.error !== null && 'message' in response.error)
+              ? (response.error as { message?: string }).message || 'Error al crear el juego'
+              : 'Error al crear el juego';
+
+            // Si hay errores de campos específicos, agregarlos
+            if (
+              typeof response.error === 'object' &&
+              response.error !== null &&
+              'fields' in response.error &&
+              typeof (response.error as any).fields === 'object'
+            ) {
+              const fieldErrors = Object.values((response.error as any).fields).flat();
+              if (fieldErrors.length > 0) {
+                errorMessage = fieldErrors.join('\n');
+              }
+            }
+          }
+        }
+
+        Alert.alert('Error', errorMessage);
       }
     } catch (error) {
-      Alert.alert('Error de Conexión', 'Verifica tu conexión a internet.');
+      console.error('💥 Exception creating game:', error);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Error desconocido';
+
+      Alert.alert(
+        'Error de Conexión',
+        `No se pudo conectar al servidor. Verifica tu conexión a internet.\n\nDetalle: ${errorMessage}`
+      );
     } finally {
       setIsLoading(false);
     }
