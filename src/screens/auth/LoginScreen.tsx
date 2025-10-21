@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,108 +28,125 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Cargar el último email usado al montar el componente
+  useEffect(() => {
+    const loadLastEmail = async () => {
+      try {
+        const lastEmail = await AsyncStorage.getItem('lastEmail');
+        if (lastEmail) {
+          setFormData(prev => ({ ...prev, email: lastEmail }));
+        }
+      } catch (error) {
+        console.log('No se pudo cargar el último email:', error);
+      }
+    };
+    loadLastEmail();
+  }, []);
+
   const handleLogin = async () => {
-  if (!formData.email.trim() || !formData.password.trim()) {
-    Alert.alert('Error', 'Por favor completa todos los campos');
-    return;
-  }
+    if (!formData.email.trim() || !formData.password.trim()) {
+      Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
 
-  setIsLoading(true);
+    setIsLoading(true);
 
-  try {
-    console.log('🔐 Attempting login for:', formData.email);
+    try {
+      console.log('🔐 Attempting login for:', formData.email);
 
-    const response = await apiService.login({
-      email: formData.email.toLowerCase().trim(),
-      password: formData.password,
-    });
+      const response = await apiService.login({
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password,
+      });
 
-    console.log('📥 Login response:', JSON.stringify(response, null, 2));
+      console.log('📥 Login response:', JSON.stringify(response, null, 2));
 
-    if (response.success && response.data) {
-      // Guardar token del formato de respuesta del backend
-      const token = response.data.data?.access_token;
+      if (response.success && response.data) {
+        // Guardar token del formato de respuesta del backend
+        const token = response.data.data?.access_token;
 
-      if (token) {
-        try {
-          console.log('💾 Saving token to AsyncStorage...');
-          await AsyncStorage.setItem('userToken', token);
-          console.log('✅ Token saved successfully');
-          console.log('🔑 Token preview:', token.substring(0, 30) + '...');
+        if (token) {
+          try {
+            console.log('💾 Saving token to AsyncStorage...');
+            await AsyncStorage.setItem('userToken', token);
+            // Guardar el email para autocompletar la próxima vez
+            await AsyncStorage.setItem('lastEmail', formData.email.toLowerCase().trim());
+            console.log('✅ Token and email saved successfully');
+            console.log('🔑 Token preview:', token.substring(0, 30) + '...');
 
-          // Navegar a Home
-          console.log('🚀 Navigating to Home...');
-          navigation.navigate('Home');
-        } catch (storageError) {
-          console.error('❌ Error saving token:', storageError);
-          Alert.alert(
-            'Error',
-            'No se pudo guardar la sesión. Intenta nuevamente.'
-          );
+            // Navegar a Home
+            console.log('🚀 Navigating to Home...');
+            navigation.navigate('Home');
+          } catch (storageError) {
+            console.error('❌ Error saving token:', storageError);
+            Alert.alert(
+              'Error',
+              'No se pudo guardar la sesión. Intenta nuevamente.'
+            );
+          }
+        } else {
+          console.error('❌ No token in response:', response.data);
+          Alert.alert('Error', 'No se recibió el token de autenticación');
         }
       } else {
-        console.error('❌ No token in response:', response.data);
-        Alert.alert('Error', 'No se recibió el token de autenticación');
-      }
-    } else {
-      // Manejar errores específicos del backend
-      console.error('❌ Login failed:', response.error);
+        // Manejar errores específicos del backend
+        console.error('❌ Login failed:', response.error);
 
-      // El error puede ser un objeto con estructura { message, fields, code }
-      let errorMessage = 'Credenciales incorrectas';
+        // El error puede ser un objeto con estructura { message, fields, code }
+        let errorMessage = 'Credenciales incorrectas';
 
-      if (response.error) {
-        if (typeof response.error === 'string') {
-          errorMessage = response.error;
-        } else if (typeof response.error === 'object' && response.error !== null) {
-          // Usar una variable con tipo seguro para evitar errores de TS
-          const errObj = response.error as { message?: unknown; fields?: unknown };
+        if (response.error) {
+          if (typeof response.error === 'string') {
+            errorMessage = response.error;
+          } else if (typeof response.error === 'object' && response.error !== null) {
+            // Usar una variable con tipo seguro para evitar errores de TS
+            const errObj = response.error as { message?: unknown; fields?: unknown };
 
-          const mainMessage = typeof errObj.message === 'string'
-            ? errObj.message
-            : 'Error en el inicio de sesión';
+            const mainMessage = typeof errObj.message === 'string'
+              ? errObj.message
+              : 'Error en el inicio de sesión';
 
-          let fieldMessages = '';
-          if (errObj.fields && typeof errObj.fields === 'object') {
-            try {
-              // Intentar extraer mensajes de campo como array de strings
-              const values = Object.values(errObj.fields as Record<string, unknown>);
-              const flattened: string[] = values
-                .flatMap(v => Array.isArray(v) ? v : [v])
-                .map(v => (v === null || v === undefined) ? '' : String(v));
+            let fieldMessages = '';
+            if (errObj.fields && typeof errObj.fields === 'object') {
+              try {
+                // Intentar extraer mensajes de campo como array de strings
+                const values = Object.values(errObj.fields as Record<string, unknown>);
+                const flattened: string[] = values
+                  .flatMap(v => Array.isArray(v) ? v : [v])
+                  .map(v => (v === null || v === undefined) ? '' : String(v));
 
-              const nonEmpty = flattened.filter(s => s && s.trim().length > 0);
-              if (nonEmpty.length > 0) {
-                fieldMessages = '\n' + nonEmpty.join('\n');
+                const nonEmpty = flattened.filter(s => s && s.trim().length > 0);
+                if (nonEmpty.length > 0) {
+                  fieldMessages = '\n' + nonEmpty.join('\n');
+                }
+              } catch (e) {
+                // Si falla la extracción, no romper la app
+                console.warn('Could not parse field errors', e);
               }
-            } catch (e) {
-              // Si falla la extracción, no romper la app
-              console.warn('Could not parse field errors', e);
             }
+
+            errorMessage = mainMessage + fieldMessages;
           }
-
-          errorMessage = mainMessage + fieldMessages;
         }
+
+        Alert.alert('Error de Login', errorMessage);
       }
+    } catch (error) {
+      console.error('💥 Login exception:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
 
-      Alert.alert('Error de Login', errorMessage);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Error de conexión al servidor';
+
+      Alert.alert(
+        'Error de Conexión',
+        `No se pudo conectar al servidor. Verifica tu conexión a internet.\n\nDetalle: ${errorMessage}`
+      );
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('💥 Login exception:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-
-    const errorMessage = error instanceof Error
-      ? error.message
-      : 'Error de conexión al servidor';
-
-    Alert.alert(
-      'Error de Conexión',
-      `No se pudo conectar al servidor. Verifica tu conexión a internet.\n\nDetalle: ${errorMessage}`
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -161,7 +178,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="username"
+                autoComplete="email"
                 textContentType="username"
                 importantForAutofill="yes"
                 returnKeyType="next"
@@ -175,7 +192,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 value={formData.password}
                 onChangeText={(password) => setFormData({ ...formData, password })}
                 autoCapitalize="none"
-                autoComplete="current-password"
+                autoComplete="password"
                 textContentType="password"
                 importantForAutofill="yes"
                 returnKeyType="done"

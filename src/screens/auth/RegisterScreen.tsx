@@ -32,17 +32,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // const clearStorage = async () => {
-  //   try {
-  //     await AsyncStorage.clear();
-  //     Alert.alert('✅ Storage Limpiado', 'Token antiguo eliminado. Ahora puedes registrarte.');
-  //     console.log('✅ AsyncStorage cleared');
-  //   } catch (error) {
-  //     console.error('Error clearing storage:', error);
-  //     Alert.alert('Error', 'No se pudo limpiar el storage');
-  //   }
-  // };
-
   const handleRegister = async () => {
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
       Alert.alert('Error', 'Por favor completa todos los campos');
@@ -181,7 +170,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="username-new"
+                autoComplete="email"
                 textContentType="username"
                 importantForAutofill="yes"
                 returnKeyType="next"
@@ -196,10 +185,8 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                   setFormData({ ...formData, password, confirmPassword: password });
                 }}
                 autoCapitalize="none"
-                autoComplete="password-new"
-                textContentType="newPassword"
-                importantForAutofill="yes"
-                passwordRules="minlength: 8; required: lower; required: upper; required: digit;"
+                autoComplete="off"
+                textContentType="none"
                 returnKeyType="next"
               />
             </View>
@@ -212,8 +199,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 autoCapitalize="none"
                 autoComplete="off"
                 textContentType="none"
-                importantForAutofill="no"
-                editable={formData.password.length > 0}
                 returnKeyType="done"
                 onSubmitEditing={handleRegister}
               />
