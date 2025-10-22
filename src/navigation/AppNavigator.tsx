@@ -20,6 +20,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { CreateGameScreen } from '../screens/createGame/CreateGameScreen';
 import { GameListScreen } from '../screens/match/GameListScreen';
 import { MatchConfigScreen } from '../screens/match/MatchConfigScreen';
+import { GameScreen } from '../screens/game/GameScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -167,7 +168,10 @@ export const AppNavigator: React.FC = () => {
         />
         <Stack.Screen
           name="Game"
-          component={HomeScreen} // Temporalmente hasta crear GameScreen
+          component={GameScreen}
+          options={{
+            gestureEnabled: false,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

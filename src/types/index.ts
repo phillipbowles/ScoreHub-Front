@@ -24,10 +24,10 @@ export interface LoginFormData {
 
 export interface RegisterFormData {
   name: string;
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;
-  acceptTerms: boolean;
 }
 
 // ============================================
@@ -176,12 +176,14 @@ export type RootStackParamList = {
   SelectGameType: undefined;
   GameList: { gameType: 'basic' | 'community' | 'custom' | 'favorites' };
   MatchConfig: { selectedGame: any };
+  
+  // Game Screen - ACTUALIZADO para aceptar gameConfig
+  Game: { gameConfig: any };
 
   // Old Game Flow (Deprecated - to be removed)
   GameSetup: undefined;
   AddPlayers: { selectedGame: Game };
   GameConfig: { selectedGame: Game; players: GamePlayer[] };
-  Game: { config: GameSetupConfig; gameConfig?: any };
 
   // Additional Screens
   Profile: undefined;

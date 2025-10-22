@@ -45,7 +45,7 @@ export const StatsScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-6 mb-6" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="py-6">
           <Text className="text-3xl font-bold text-black mb-2">Estadísticas</Text>

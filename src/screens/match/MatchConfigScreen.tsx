@@ -65,6 +65,17 @@ const TEAM_NAMES = [
   'Equipo Rosa',
 ];
 
+const PLAYER_COLORS = [
+  '#ff9999', // coral suave
+  '#99ccff', // azul suave  
+  '#99ff99', // verde suave
+  '#ffcc99', // naranja suave
+  '#cc99ff', // morado suave
+  '#ffff99', // amarillo suave
+  '#ff99cc', // rosa suave
+  '#99ffff', // cyan suave
+];
+
 export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
   const { selectedGame } = route.params as { selectedGame: BackendGame };
 
@@ -218,20 +229,50 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        Alert.alert(
-          'Partida Creada',
-          `¡${matchName} está lista para comenzar!`,
-          [
-            {
-              text: 'Iniciar',
-              onPress: () => {
-                // TODO: Navegar a GameScreen con la configuración completa
-                // navigation.navigate('Game', { matchId: response.data.id });
-                navigation.navigate('Home');
-              },
-            },
-          ]
-        );
+        // Preparar la configuración del juego para GameScreen
+        const gameConfig = {
+          matchId: response.data?.id,
+          name: matchName.trim(),
+          gameName: selectedGame.name,
+          hasTeams: selectedGame.has_teams,
+          hasRounds: selectedGame.rounds > 0,
+          totalRounds: selectedGame.rounds,
+          hasTimer: selectedGame.has_turns && selectedGame.turn_duration > 0,
+          timerDuration: selectedGame.turn_duration,
+          roundDuration: selectedGame.round_duration,
+          ending: selectedGame.ending,
+          maxPoints: selectedGame.max_points,
+          minPoints: selectedGame.min_points,
+          // Convertir datos para el GameScreen
+          ...(selectedGame.has_teams
+            ? {
+                teams: teams.map((team, index) => ({
+                  id: team.id,
+                  name: team.name,
+                  players: team.players.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    score: 0,
+                    color: '',
+                  })),
+                  score: 0,
+                  color: team.color,
+                })),
+              }
+            : {
+                players: players.map((player, index) => ({
+                  id: player.id,
+                  name: player.name,
+                  score: 0,
+                  color: PLAYER_COLORS[index % PLAYER_COLORS.length],
+                })),
+              }),
+        };
+
+        console.log('🎮 Game Config:', gameConfig);
+
+        // Navegar a GameScreen con la configuración
+        navigation.navigate('Game', { gameConfig });
       } else {
         Alert.alert('Error', response.error || 'No se pudo crear la partida');
       }

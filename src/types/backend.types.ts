@@ -55,9 +55,10 @@ export interface CreateMatchRequest {
   game_id: number;
 }
 
-export interface BackendUser {
+export interface xBackendUser {
   id: number;
   name: string;
+  username: string;
   email_address: string;
   created_at?: string;
   updated_at?: string;

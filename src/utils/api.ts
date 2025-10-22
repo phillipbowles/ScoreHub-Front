@@ -16,6 +16,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   name: string;
+  username: string;
   email_address: string;
   password: string;
   password_confirmation: string;
@@ -144,8 +145,8 @@ class ApiService {
     }, true); // Skip auth for login
   }
 
-  async register(userData: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
-    return this.makeRequest<RegisterResponse>('/users', {
+  async register(userData: RegisterRequest): Promise<ApiResponse<LoginResponse>> {
+    return this.makeRequest<LoginResponse>('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     }, true); // Skip auth for registration

@@ -137,25 +137,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Continue Game Banner */}
-        <Card className="bg-gradient-to-br from-black to-gray-800 mb-6" padding="large">
-          <View className="flex-row justify-between items-center">
-            <View className="flex-1 mr-4">
-              <View className="flex-row items-center mb-2">
-                <Play size={20} color="#ffffff" weight="fill" />
-                <Text className="text-lg font-semibold text-white ml-2">
-                  Partida en Curso
-                </Text>
-              </View>
-              <Text className="text-sm text-gray-300 mb-1">
-                UNO • 3 jugadores • Ronda 2
-              </Text>
-              <Text className="text-xs text-gray-400">Tu turno • 2:30 restantes</Text>
-            </View>
-            <Button title="Continuar" variant="secondary" size="small" />
-          </View>
-        </Card>
-
         {/* Quick Actions */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-black mb-4">Inicio Rápido</Text>
@@ -238,29 +219,34 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Stats */}
-        <View className="flex-row mb-8">
-          <Card className="flex-1 mr-2 items-center" padding="large">
-            <IconContainer
-              icon={Trophy}
-              color="#f59e0b"
-              bgColor="#fef3c7"
-              size="large"
-              rounded="full"
-            />
-            <Text className="text-2xl font-bold text-black mt-2">23</Text>
-            <Text className="text-xs text-gray-500 font-medium">Victorias</Text>
-          </Card>
-          <Card className="flex-1 ml-2 items-center" padding="large">
-            <IconContainer
-              icon={Fire}
-              color="#ef4444"
-              bgColor="#fee2e2"
-              size="large"
-              rounded="full"
-            />
-            <Text className="text-2xl font-bold text-black mt-2">5</Text>
-            <Text className="text-xs text-gray-500 font-medium">Racha</Text>
-          </Card>
+        <View className="mb-8">
+          <Text className="text-lg font-semibold text-black mb-4">
+            Estadísticas
+          </Text>
+          <View className="flex-row">
+            <Card className="flex-1 mr-2 items-center" padding="large">
+              <IconContainer
+                icon={GameController}
+                color="#3b82f6"
+                bgColor="#dbeafe"
+                size="large"
+                rounded="full"
+              />
+              <Text className="text-2xl font-bold text-black mt-2">47</Text>
+              <Text className="text-xs text-gray-500 font-medium">Partidas</Text>
+            </Card>
+            <Card className="flex-1 ml-2 items-center" padding="large">
+              <IconContainer
+                icon={Trophy}
+                color="#f59e0b"
+                bgColor="#fef3c7"
+                size="large"
+                rounded="full"
+              />
+              <Text className="text-2xl font-bold text-black mt-2">23</Text>
+              <Text className="text-xs text-gray-500 font-medium">Victorias</Text>
+            </Card>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
