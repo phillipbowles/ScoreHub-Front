@@ -20,8 +20,10 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { IconContainer } from '../components/common/IconContainer';
 import { RootStackParamList } from '../types';
+import { BackendGame } from '../types/backend.types';
 import { apiService } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getIconComponent } from '../utils/iconMapper';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -39,7 +41,7 @@ interface QuickAction {
 }
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [games, setGames] = useState<any[]>([]);
+  const [games, setGames] = useState<BackendGame[]>([]);
   const [userName, setUserName] = useState('Usuario');
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +54,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const response = await apiService.getGames();
       if (response.success && response.data) {
-        setGames(response.data);
+        const gamesList = Array.isArray(response.data)
+          ? response.data
+          : (response.data as any).data || [];
+        setGames(gamesList);
       }
     } catch (error) {
       console.error('Error loading games:', error);
@@ -175,25 +180,31 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           ) : games.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row space-x-3">
-                {games.map((game, index) => (
-                  <Card key={game.id || index} className="w-36" padding="medium">
-                    <View className="items-center">
-                      <View className="w-14 h-14 bg-blue-500 rounded-2xl items-center justify-center mb-3">
-                        {game.icon && /\p{Emoji}/u.test(game.icon) ? (
-                          <Text className="text-3xl">{game.icon}</Text>
-                        ) : (
-                          <GameController size={28} color="#ffffff" weight="bold" />
-                        )}
+                {games.map((game) => (
+                  <TouchableOpacity
+                    key={game.id}
+                    onPress={() => navigation.navigate('GameDetail', { game })}
+                    activeOpacity={0.7}
+                  >
+                    <Card className="w-32" padding="medium">
+                      <View className="items-center">
+                        <View
+                          className="w-16 h-16 rounded-2xl items-center justify-center mb-3"
+                          style={{
+                            backgroundColor: game.bg_color || '#dbeafe',
+                          }}
+                        >
+                          {(() => {
+                            const IconComponent = getIconComponent(game.icon);
+                            return <IconComponent size={32} color={game.color || '#3b82f6'} weight="fill" />;
+                          })()}
+                        </View>
+                        <Text className="font-semibold text-black text-center" numberOfLines={2}>
+                          {game.name}
+                        </Text>
                       </View>
-                      <Text className="font-semibold text-black mb-1 text-center" numberOfLines={1}>
-                        {game.name || 'Sin nombre'}
-                      </Text>
-                      <Text className="text-xs text-gray-500 mb-3 text-center">
-                        {game.min_players || 2}-{game.max_players || 4} jugadores
-                      </Text>
-                      <Button title="Jugar" size="small" className="w-full" />
-                    </View>
-                  </Card>
+                    </Card>
+                  </TouchableOpacity>
                 ))}
               </View>
             </ScrollView>

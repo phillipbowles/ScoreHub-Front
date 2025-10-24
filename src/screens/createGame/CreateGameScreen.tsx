@@ -12,13 +12,14 @@ import {
   Skull
 } from 'phosphor-react-native';
 import { RootStackParamList } from '../../types';
-import { EndingType, CreateGameRequest } from '../../types/backend.types';
+import { CreateGameRequest } from '../../types/backend.types';
 import { Button } from '../../components/ui/Button';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { InputField } from '../../components/common/InputField';
 import { SettingItem } from '../../components/common/SettingItem';
 import { IconSelectorModal } from '../../components/game/IconSelectorModal';
 import { apiService } from '../../utils/api';
+import { getIconComponent } from '../../utils/iconMapper';
 
 type CreateGameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateGame'>;
 
@@ -30,7 +31,7 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    selectedIcon: 'Trophy',
+    selectedIcon: 'CardsThree',
     selectedColor: '#3b82f6',
     selectedBgColor: '#dbeafe',
     rules: '',
@@ -39,9 +40,9 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
     maxTeamLength: 4,
     numberOfPlayers: 4,
     rounds: 1,
-    initialPoints: 0,
+    startingPoints: 0,
     showTimer: false,
-    defaultTimerDuration: 60, // segundos
+    defaultTimerDuration: 60,
     endingType: 'end_rounds' as 'end_rounds' | 'win' | 'lose',
     pointsToWin: 100,
     pointsToLose: 0,
@@ -78,17 +79,17 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    // Validación de puntos para win/lose
+    // Validación de puntos según el tipo de finalización
     if (formData.endingType === 'win') {
-      if (formData.pointsToWin <= formData.initialPoints) {
-        Alert.alert('Error', 'Los puntos para ganar deben ser mayores a los puntos iniciales');
+      if (formData.pointsToWin === formData.startingPoints) {
+        Alert.alert('Error', 'Los puntos para ganar no pueden ser iguales a los puntos iniciales');
         return;
       }
     }
-    
+
     if (formData.endingType === 'lose') {
-      if (formData.pointsToLose >= formData.initialPoints) {
-        Alert.alert('Error', 'Los puntos para perder deben ser menores a los puntos iniciales');
+      if (formData.pointsToLose === formData.startingPoints) {
+        Alert.alert('Error', 'Los puntos para perder no pueden ser iguales a los puntos iniciales');
         return;
       }
     }
@@ -105,14 +106,18 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
         turn_duration: formData.showTimer ? formData.defaultTimerDuration : 0,
         round_duration: formData.showTimer ? formData.defaultTimerDuration : 0,
         rounds: formData.rounds,
-        ending: formData.endingType === 'end_rounds' 
-          ? 'end_rounds' 
-          : formData.endingType === 'win'
-          ? 'reach_max_score'
-          : 'reach_min_score',
-        min_points: formData.endingType === 'lose' ? formData.pointsToLose : formData.initialPoints,
-        max_points: formData.endingType === 'win' ? formData.pointsToWin : 0,
+        starting_points: formData.startingPoints,
+        finishing_points: formData.endingType === 'win'
+          ? formData.pointsToWin
+          : formData.endingType === 'lose'
+          ? formData.pointsToLose
+          : formData.startingPoints, // Si es por rondas, no importa el finishing_points
+        is_winning: formData.endingType === 'win', // true si es 'win', false si es 'lose' o 'end_rounds'
         rules: formData.rules.trim() || undefined,
+        description: formData.description.trim() || undefined,
+        icon: formData.selectedIcon,
+        color: formData.selectedColor,
+        bg_color: formData.selectedBgColor,
       };
 
       console.log('📤 Creating game with data:', gameData);
@@ -196,7 +201,7 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Selector de Icono */}
         <SettingItem
-          icon={Sparkle}
+          icon={getIconComponent(formData.selectedIcon)}
           iconColor={formData.selectedColor}
           iconBgColor={formData.selectedBgColor}
           label="Icono y Color"
@@ -302,11 +307,11 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           iconColor="#10b981"
           iconBgColor="#d1fae5"
           label="Puntos Iniciales"
-          description="Puntos con los que arranca el juego"
+          description="Puntos con los que arranca cada jugador"
           type="counter"
-          value={formData.initialPoints}
-          onValueChange={(val) => updateFormData('initialPoints', val)}
-          counterMin={0}
+          value={formData.startingPoints}
+          onValueChange={(val) => updateFormData('startingPoints', val)}
+          counterMin={-100}
           counterMax={1000}
           counterStep={5}
         />
@@ -374,7 +379,7 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
             type="counter"
             value={formData.pointsToWin}
             onValueChange={(val) => updateFormData('pointsToWin', val)}
-            counterMin={formData.initialPoints + 1}
+            counterMin={-10000}
             counterMax={10000}
             counterStep={5}
           />
@@ -387,12 +392,12 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
             iconColor="#ef4444"
             iconBgColor="#fee2e2"
             label="Puntos para Perder"
-            description="Bajar a estos puntos para perder"
+            description="Llegar a estos puntos para perder"
             type="counter"
             value={formData.pointsToLose}
             onValueChange={(val) => updateFormData('pointsToLose', val)}
             counterMin={-10000}
-            counterMax={formData.initialPoints - 1}
+            counterMax={10000}
             counterStep={5}
           />
         )}

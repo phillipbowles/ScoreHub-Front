@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -24,6 +25,7 @@ import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { Card } from '../../components/ui/Card';
 import { IconContainer } from '../../components/common/IconContainer';
 import { apiService } from '../../utils/api';
+import { getIconComponent } from '../../utils/iconMapper';
 
 type GameListScreenNavigationProp = StackNavigationProp<RootStackParamList, 'GameList'>;
 type GameListScreenRouteProp = RouteProp<RootStackParamList, 'GameList'>;
@@ -166,9 +168,15 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
         <View className="mb-6">
           <View className="flex-row items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
             <MagnifyingGlass size={20} color="#6b7280" weight="bold" />
-            <Text className="flex-1 ml-3 text-base text-gray-900">
-              Buscar juegos...
-            </Text>
+            <TextInput
+              className="flex-1 ml-3 text-base text-gray-900"
+              placeholder="Buscar juegos..."
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
         </View>
 
@@ -218,10 +226,13 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
                     <View
                       className="w-16 h-16 rounded-2xl items-center justify-center"
                       style={{
-                        backgroundColor: '#dbeafe',
+                        backgroundColor: game.bg_color || '#dbeafe',
                       }}
                     >
-                      <GameController size={32} color="#3b82f6" weight="fill" />
+                      {(() => {
+                        const IconComponent = getIconComponent(game.icon);
+                        return <IconComponent size={32} color={game.color || '#3b82f6'} weight="fill" />;
+                      })()}
                     </View>
 
                     {/* Game Info */}
@@ -270,11 +281,11 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
                         {/* Ending Type */}
                         <View className="flex-row items-center bg-green-50 px-2 py-1 rounded-md">
                           <Text className="text-xs font-semibold text-green-700">
-                            {game.ending === 'end_rounds'
+                            {game.rounds > 1
                               ? 'Por rondas'
-                              : game.ending === 'reach_max_score'
-                              ? `Máx ${game.max_points} pts`
-                              : `Mín ${game.min_points} pts`}
+                              : game.is_winning
+                              ? `Alcanzar ${game.finishing_points} pts (ganar)`
+                              : `Alcanzar ${game.finishing_points} pts (perder)`}
                           </Text>
                         </View>
                       </View>

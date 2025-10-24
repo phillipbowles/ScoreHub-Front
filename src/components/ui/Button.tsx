@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, View, TouchableOpacityProps } from 'react-nativ
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'small' | 'medium' | 'large';
   icon?: React.ReactNode;
 }
@@ -20,7 +20,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary: 'bg-black',
-    secondary: 'bg-gray-100'
+    secondary: 'bg-gray-100',
+    ghost: 'bg-transparent'
   };
 
   const sizeClasses = {
@@ -31,7 +32,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   const textVariantClasses = {
     primary: 'text-white',
-    secondary: 'text-black'
+    secondary: 'text-black',
+    ghost: 'text-black',
   };
 
   const textSizeClasses = {

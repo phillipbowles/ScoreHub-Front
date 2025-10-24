@@ -175,10 +175,22 @@ export type RootStackParamList = {
   CreateGame: undefined;
   SelectGameType: undefined;
   GameList: { gameType: 'basic' | 'community' | 'custom' | 'favorites' };
+  GameDetail: { game: any };
   MatchConfig: { selectedGame: any };
-  
+
   // Game Screen - ACTUALIZADO para aceptar gameConfig
   Game: { gameConfig: any };
+
+  // Game Results Screen
+  GameResults: {
+    mode: 'individual' | 'teams';
+    players?: Player[];
+    teams?: any[];
+    rounds: any[];
+    isWinning: boolean;
+    hasRounds: boolean;
+    gameName: string;
+  };
 
   // Old Game Flow (Deprecated - to be removed)
   GameSetup: undefined;

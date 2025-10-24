@@ -28,6 +28,7 @@ interface RoundsViewProps {
   teams?: Team[];
   rounds: RoundScore[];
   currentRound: number;
+  totalRounds: number;
 }
 
 export const RoundsView: React.FC<RoundsViewProps> = ({
@@ -36,6 +37,7 @@ export const RoundsView: React.FC<RoundsViewProps> = ({
   teams = [],
   rounds,
   currentRound,
+  totalRounds,
 }) => {
   const items = mode === 'teams' ? teams : players;
   const cellWidth = Math.max(80, (100 / (items.length + 1)));
@@ -204,8 +206,8 @@ export const RoundsView: React.FC<RoundsViewProps> = ({
               </View>
             ))}
 
-            {/* Rondas futuras vacías */}
-            {Array.from({ length: Math.max(0, 10 - rounds.length) }).map((_, index) => (
+            {/* Rondas futuras vacías - solo mostrar hasta totalRounds */}
+            {Array.from({ length: Math.max(0, totalRounds - rounds.length) }).map((_, index) => (
               <View
                 key={`future-${index}`}
                 style={{
@@ -244,7 +246,7 @@ export const RoundsView: React.FC<RoundsViewProps> = ({
                       fontWeight: '500',
                       color: '#4b5563',
                     }}>
-                      0
+                      -
                     </Text>
                   </View>
                 ))}

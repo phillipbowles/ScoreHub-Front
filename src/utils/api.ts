@@ -208,7 +208,12 @@ class ApiService {
   }
 
   // MATCHES
-  async createMatch(matchData: { name: string; game_id: number }): Promise<ApiResponse<any>> {
+  async createMatch(matchData: {
+    name: string;
+    creator_id: number;
+    game_id: number;
+    players: string[]
+  }): Promise<ApiResponse<any>> {
     return this.makeRequest('/game-match', {
       method: 'POST',
       body: JSON.stringify(matchData),

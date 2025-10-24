@@ -1,8 +1,6 @@
 // src/types/backend.types.ts
 // Types that match the backend API structure
 
-export type EndingType = 'end_rounds' | 'reach_max_score' | 'reach_min_score';
-
 export interface BackendGame {
   id: number;
   name: string;
@@ -15,10 +13,13 @@ export interface BackendGame {
   has_teams: boolean;
   min_team_length: number;
   max_team_length: number;
-  ending: EndingType;
-  min_points: number;
-  max_points: number;
+  starting_points: number;
+  finishing_points: number;
+  is_winning: boolean;
   rules: string;
+  icon: string;
+  color: string;
+  bg_color: string;
   user_id: number;
   created_at?: string;
   updated_at?: string;
@@ -34,10 +35,14 @@ export interface CreateGameRequest {
   has_teams: boolean;
   min_team_length: number;
   max_team_length: number;
-  ending: EndingType;
-  min_points: number;
-  max_points: number;
+  starting_points: number;
+  finishing_points: number;
+  is_winning: boolean;
   rules?: string;
+  description?: string;
+  icon: string;
+  color: string;
+  bg_color: string;
 }
 
 export interface BackendMatch {

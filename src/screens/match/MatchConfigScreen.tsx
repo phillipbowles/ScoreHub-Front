@@ -10,7 +10,6 @@ import {
   X,
   Crown,
   Check,
-  GameController,
 } from 'phosphor-react-native';
 import { RootStackParamList } from '../../types';
 import { BackendGame } from '../../types/backend.types';
@@ -23,6 +22,7 @@ import { PlayerSearchModal } from '../../components/match/PlayerSearchModal';
 import { TeamPlayerManager } from '../../components/match/TeamPlayerManager';
 import { apiService } from '../../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getIconComponent } from '../../utils/iconMapper';
 
 type MatchConfigScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MatchConfig'>;
 type MatchConfigScreenRouteProp = RouteProp<RootStackParamList, 'MatchConfig'>;
@@ -38,6 +38,7 @@ interface Player {
   isGuest: boolean;
   userId?: number;
   teamId?: string;
+  isHost?: boolean;
 }
 
 interface Team {
@@ -67,7 +68,7 @@ const TEAM_NAMES = [
 
 const PLAYER_COLORS = [
   '#ff9999', // coral suave
-  '#99ccff', // azul suave  
+  '#99ccff', // azul suave
   '#99ff99', // verde suave
   '#ffcc99', // naranja suave
   '#cc99ff', // morado suave
@@ -86,9 +87,37 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
 
   // Estados para modo individual
   const [players, setPlayers] = useState<Player[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Estados para modo equipos
   const [teams, setTeams] = useState<Team[]>([]);
+
+  // Cargar usuario actual
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+
+      if (userData) {
+        setCurrentUser(userData);
+
+        // Agregar usuario actual como anfitrión automáticamente
+        const hostPlayer: Player = {
+          id: `user-${userData.id}-host`,
+          name: userData.name,
+          isGuest: false,
+          userId: userData.id,
+          isHost: true,
+        };
+
+        if (!selectedGame.has_teams) {
+          setPlayers([hostPlayer]);
+        }
+      }
+    };
+
+    loadCurrentUser();
+  }, []);
 
   // Inicializar equipos si el juego los requiere
   useEffect(() => {
@@ -168,16 +197,17 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleRemovePlayer = (playerId: string, teamId?: string) => {
+    // No permitir eliminar al anfitrión
     if (selectedGame.has_teams && teamId) {
       setTeams(prevTeams =>
         prevTeams.map(team =>
           team.id === teamId
-            ? { ...team, players: team.players.filter(p => p.id !== playerId) }
+            ? { ...team, players: team.players.filter(p => p.id !== playerId && !p.isHost) }
             : team
         )
       );
     } else {
-      setPlayers(prev => prev.filter(p => p.id !== playerId));
+      setPlayers(prev => prev.filter(p => p.id !== playerId && !p.isHost));
     }
   };
 
@@ -223,9 +253,26 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
     // Crear la partida en el backend
     setIsCreatingMatch(true);
     try {
+      // Obtener el ID del usuario actual
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+
+      if (!userData?.id) {
+        Alert.alert('Error', 'No se pudo obtener la información del usuario. Intenta iniciar sesión nuevamente.');
+        setIsCreatingMatch(false);
+        return;
+      }
+
+      // Preparar la lista de jugadores
+      const playerNames = selectedGame.has_teams
+        ? teams.flatMap(team => team.players.map(p => p.name))
+        : players.map(p => p.name);
+
       const response = await apiService.createMatch({
         name: matchName.trim(),
+        creator_id: userData.id,
         game_id: Number(selectedGame.id),
+        players: playerNames,
       });
 
       if (response.success) {
@@ -235,14 +282,14 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
           name: matchName.trim(),
           gameName: selectedGame.name,
           hasTeams: selectedGame.has_teams,
-          hasRounds: selectedGame.rounds > 0,
+          hasRounds: selectedGame.rounds > 1,
           totalRounds: selectedGame.rounds,
           hasTimer: selectedGame.has_turns && selectedGame.turn_duration > 0,
           timerDuration: selectedGame.turn_duration,
           roundDuration: selectedGame.round_duration,
-          ending: selectedGame.ending,
-          maxPoints: selectedGame.max_points,
-          minPoints: selectedGame.min_points,
+          startingPoints: selectedGame.starting_points,
+          finishingPoints: selectedGame.finishing_points,
+          isWinning: selectedGame.is_winning,
           // Convertir datos para el GameScreen
           ...(selectedGame.has_teams
             ? {
@@ -252,10 +299,10 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
                   players: team.players.map(p => ({
                     id: p.id,
                     name: p.name,
-                    score: 0,
+                    score: selectedGame.starting_points,
                     color: '',
                   })),
-                  score: 0,
+                  score: selectedGame.starting_points,
                   color: team.color,
                 })),
               }
@@ -263,7 +310,7 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
                 players: players.map((player, index) => ({
                   id: player.id,
                   name: player.name,
-                  score: 0,
+                  score: selectedGame.starting_points,
                   color: PLAYER_COLORS[index % PLAYER_COLORS.length],
                 })),
               }),
@@ -274,24 +321,61 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         // Navegar a GameScreen con la configuración
         navigation.navigate('Game', { gameConfig });
       } else {
-        Alert.alert('Error', response.error || 'No se pudo crear la partida');
+        // Manejar errores del backend de forma segura
+        let errorMessage = 'No se pudo crear la partida';
+
+        if (typeof response.error === 'string') {
+          errorMessage = response.error;
+        } else if (typeof response.error === 'object' && response.error !== null) {
+          const err: any = response.error;
+          if (err && typeof err === 'object') {
+            if ('message' in err) {
+              errorMessage = String(err.message);
+            }
+            // Si hay errores de validación de campos
+            if (err.fields && typeof err.fields === 'object') {
+              const fieldErrors = Object.values(err.fields as Record<string, string[]>).flat();
+              if (fieldErrors.length > 0) {
+                errorMessage = fieldErrors.join('\n');
+              }
+            }
+          }
+        }
+
+        Alert.alert('Error al crear partida', errorMessage);
       }
     } catch (error) {
-      console.error('Error creating match:', error);
-      Alert.alert('Error', 'Error de conexión al crear la partida');
+      console.error('💥 Exception creating match:', error);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Error desconocido al conectar con el servidor';
+
+      Alert.alert(
+        'Error de Conexión',
+        `No se pudo conectar al servidor.\n\n${errorMessage}`
+      );
     } finally {
       setIsCreatingMatch(false);
     }
   };
 
   const getExcludedUserIds = (): number[] => {
+    // Siempre excluir al usuario actual (anfitrión)
+    const excludedIds: number[] = currentUser?.id ? [currentUser.id] : [];
+
     if (selectedGame.has_teams) {
-      return teams
+      const teamPlayerIds = teams
         .flatMap(team => team.players)
         .filter(p => !p.isGuest && p.userId)
         .map(p => p.userId!);
+      return [...excludedIds, ...teamPlayerIds];
     }
-    return players.filter(p => !p.isGuest && p.userId).map(p => p.userId!);
+
+    const playerIds = players
+      .filter(p => !p.isGuest && p.userId)
+      .map(p => p.userId!);
+    return [...excludedIds, ...playerIds];
   };
 
   const getTotalPlayers = () => {
@@ -311,18 +395,29 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         />
 
         {/* Game Summary */}
-        <Card className="bg-gradient-to-br from-blue-500 to-purple-600 mb-6" padding="large">
-          <View className="flex-row items-center">
+        <Card className="mb-6 bg-white" padding="large">
+          <View className="flex-row items-start">
             <View
-              className="w-16 h-16 rounded-2xl items-center justify-center bg-white"
+              className="w-14 h-14 rounded-xl items-center justify-center"
+              style={{
+                backgroundColor: selectedGame.bg_color || '#dbeafe',
+              }}
             >
-              <GameController size={40} color="#3b82f6" weight="fill" />
+              {(() => {
+                const IconComponent = getIconComponent(selectedGame.icon);
+                return <IconComponent size={28} color={selectedGame.color || '#3b82f6'} weight="fill" />;
+              })()}
             </View>
             <View className="flex-1 ml-4">
-              <Text className="text-white text-xl font-bold mb-1">
+              <Text className="text-lg font-bold text-black mb-1">
                 {selectedGame.name}
               </Text>
-              <Text className="text-white/80 text-sm">
+              {selectedGame.description && (
+                <Text className="text-sm text-gray-600 mb-2">
+                  {selectedGame.description}
+                </Text>
+              )}
+              <Text className="text-sm text-gray-500">
                 {selectedGame.has_teams
                   ? `${selectedGame.number_of_players} equipos • ${selectedGame.min_team_length}-${selectedGame.max_team_length} jugadores/equipo`
                   : `${selectedGame.number_of_players} jugadores`}
@@ -363,19 +458,26 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
             {/* Players List */}
             <View className="space-y-3 mb-4">
               {players.map((player) => (
-                <Card key={player.id} padding="medium">
+                <Card key={player.id} padding="medium" className={player.isHost ? "border-2 border-amber-500" : ""}>
                   <View className="flex-row items-center">
                     <PlayerAvatar
                       avatar={player.name.charAt(0).toUpperCase()}
-                      color="#3b82f6"
+                      color={player.isHost ? "#f59e0b" : "#3b82f6"}
                       size="medium"
                     />
                     <View className="flex-1 ml-3">
-                      <Text className="text-base font-semibold text-black">
-                        {player.name}
-                      </Text>
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-base font-semibold text-black">
+                          {player.name}
+                        </Text>
+                      </View>
                       <View className="flex-row items-center mt-1">
-                        {player.isGuest ? (
+                        {player.isHost ? (
+                          <>
+                            <Crown size={14} color="#f59e0b" weight="bold" />
+                            <Text className="text-sm text-amber-600 ml-1 font-semibold">Anfitrión</Text>
+                          </>
+                        ) : player.isGuest ? (
                           <>
                             <Text className="text-sm text-gray-500">Invitado</Text>
                           </>
@@ -387,12 +489,14 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
                         )}
                       </View>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => handleRemovePlayer(player.id)}
-                      className="w-8 h-8 bg-red-500 rounded-lg items-center justify-center"
-                    >
-                      <X size={18} color="#ffffff" weight="bold" />
-                    </TouchableOpacity>
+                    {!player.isHost && (
+                      <TouchableOpacity
+                        onPress={() => handleRemovePlayer(player.id)}
+                        className="w-8 h-8 bg-red-500 rounded-lg items-center justify-center"
+                      >
+                        <X size={18} color="#ffffff" weight="bold" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </Card>
               ))}
@@ -445,13 +549,19 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
               </Text>
             </View>
             <View className="flex-row items-center justify-between">
+              <Text className="text-sm text-gray-600">Puntos iniciales:</Text>
+              <Text className="text-sm font-semibold text-gray-900">
+                {selectedGame.starting_points}
+              </Text>
+            </View>
+            <View className="flex-row items-center justify-between">
               <Text className="text-sm text-gray-600">Termina por:</Text>
               <Text className="text-sm font-semibold text-gray-900">
-                {selectedGame.ending === 'end_rounds'
-                  ? 'Rondas completadas'
-                  : selectedGame.ending === 'reach_max_score'
-                  ? `Alcanzar ${selectedGame.max_points} pts (máx)`
-                  : `Alcanzar ${selectedGame.min_points} pts (mín)`}
+                {selectedGame.rounds > 1
+                  ? `${selectedGame.rounds} rondas`
+                  : selectedGame.is_winning
+                  ? `Alcanzar ${selectedGame.finishing_points} pts (ganar)`
+                  : `Alcanzar ${selectedGame.finishing_points} pts (perder)`}
               </Text>
             </View>
           </View>
