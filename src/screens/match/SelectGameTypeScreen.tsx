@@ -123,31 +123,13 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-6 mb-6" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <ScreenHeader
           title="Nueva Partida"
           subtitle="Selecciona el tipo de juego que quieres jugar"
           rightIcon={<Sparkle size={24} color="#3b82f6" weight="bold" />}
         />
-
-        {/* Featured Section */}
-        <Card className="bg-gradient-to-br from-purple-600 to-blue-600 mb-6" padding="large">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <Text className="text-white text-lg font-bold mb-1">¿Primera vez?</Text>
-              <Text className="text-white/80 text-sm">
-                Comienza con nuestros juegos populares
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => handleSelectGameType('basic')}
-              className="bg-white rounded-full px-4 py-2"
-            >
-              <Text className="text-purple-600 font-semibold">Ver Juegos</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
 
         {/* Game Types */}
         <View className="mb-8">

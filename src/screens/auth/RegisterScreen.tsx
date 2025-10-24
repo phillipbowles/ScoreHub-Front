@@ -25,10 +25,10 @@ interface Props {
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
-    acceptTerms: false
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -43,16 +43,12 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    if (!formData.acceptTerms) {
-      Alert.alert('Error', 'Debes aceptar los términos y condiciones');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
       const response = await apiService.register({
         name: formData.name.trim(),
+        username: formData.username.trim(),
         email_address: formData.email.toLowerCase().trim(),
         password: formData.password,
         password_confirmation: formData.confirmPassword,
@@ -61,9 +57,14 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       if (response.success) {
         console.log('✅ Registration successful:', response.data);
 
+        const token = response.data?.data?.access_token;
+        if (!token) {
+          throw new Error('No access token received after registration');
+        }
         // Guardar credenciales para que el sistema las recuerde
         try {
           await AsyncStorage.setItem('lastEmail', formData.email.toLowerCase().trim());
+           await AsyncStorage.setItem('userToken', token);
         } catch (e) {
           console.log('Could not save email for autofill');
         }
@@ -164,6 +165,18 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
             <View className="mb-5">
               <Input
+                placeholder="Nombre de usuario"
+                value={formData.username}
+                onChangeText={(username) => setFormData({ ...formData, username })}
+                autoCapitalize="words"
+                autoComplete="username"
+                textContentType="username"
+                returnKeyType="next"
+              />
+            </View>
+
+            <View className="mb-5">
+              <Input
                 placeholder="Email"
                 value={formData.email}
                 onChangeText={(email) => setFormData({ ...formData, email })}
@@ -202,28 +215,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 returnKeyType="done"
                 onSubmitEditing={handleRegister}
               />
-            </View>
-
-            {/* Checkbox personalizado */}
-            <View className="flex-row items-start mb-8">
-              <TouchableOpacity
-                onPress={() => setFormData({ ...formData, acceptTerms: !formData.acceptTerms })}
-                className="mr-3 mt-1"
-              >
-                <View className={`w-5 h-5 rounded border-2 items-center justify-center ${
-                  formData.acceptTerms ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'
-                }`}>
-                  {formData.acceptTerms && (
-                    <Text className="text-white text-xs font-bold">✓</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-              <Text className="text-sm text-gray-500 flex-1">
-                Acepto los{' '}
-                <Text className="text-blue-500">términos y condiciones</Text>
-                {' '}y la{' '}
-                <Text className="text-blue-500">política de privacidad</Text>
-              </Text>
             </View>
 
             <Button

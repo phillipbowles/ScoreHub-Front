@@ -1,6 +1,6 @@
 // src/screens/game/GameScreen.tsx
-import React, { useState } from 'react';
-import { View, SafeAreaView, TouchableOpacity, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, SafeAreaView, TouchableOpacity, Text, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { User, Users, Trophy, Clock } from 'phosphor-react-native';
@@ -37,93 +37,135 @@ interface RoundScore {
   [id: string]: number;
 }
 
-const PLAYER_COLORS = [
-  '#ff9999', // coral suave
-  '#99ccff', // azul suave  
-  '#99ff99', // verde suave
-  '#ffcc99', // naranja suave
-  '#cc99ff', // morado suave
-  '#ffff99', // amarillo suave
-  '#ff99cc', // rosa suave
-  '#99ffff', // cyan suave
-];
-
 export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   // Obtener configuración del juego desde route.params
   const gameConfig = route.params?.gameConfig || {
-    name: 'Truco',
+    name: 'Juego',
+    gameName: 'Juego',
     hasTeams: false,
     hasRounds: true,
     totalRounds: 5,
     hasTimer: false,
     timerDuration: 120,
+    players: [],
+    teams: [],
   };
+
+  console.log('🎮 GameScreen received config:', gameConfig);
 
   const [activeTab, setActiveTab] = useState<'score' | 'rounds' | 'timer'>('score');
   const [currentRound, setCurrentRound] = useState(1);
   
-  // Estado para modo INDIVIDUAL
-  const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: 'Alice', score: 21, color: PLAYER_COLORS[0] },
-    { id: '2', name: 'Bob', score: 18, color: PLAYER_COLORS[1] },
-    { id: '3', name: 'Charlie', score: 15, color: PLAYER_COLORS[2] },
-    { id: '4', name: 'Diana', score: 12, color: PLAYER_COLORS[3] },
-  ]);
+  // Estado para modo INDIVIDUAL - usar datos reales o fallback
+  const [players, setPlayers] = useState<Player[]>(
+    gameConfig.players && gameConfig.players.length > 0
+      ? gameConfig.players
+      : [
+          { id: '1', name: 'Jugador 1', score: 0, color: '#ff9999' },
+          { id: '2', name: 'Jugador 2', score: 0, color: '#99ccff' },
+        ]
+  );
 
-  // Estado para modo EQUIPOS
-  const [teams, setTeams] = useState<Team[]>([
-    {
-      id: 't1',
-      name: 'Equipo Rojo',
-      players: [
-        { id: '1', name: 'Alice', score: 0, color: '' },
-        { id: '2', name: 'Bob', score: 0, color: '' },
-      ],
-      score: 21,
-      color: PLAYER_COLORS[0],
-    },
-    {
-      id: 't2',
-      name: 'Equipo Azul',
-      players: [
-        { id: '3', name: 'Charlie', score: 0, color: '' },
-        { id: '4', name: 'Diana', score: 0, color: '' },
-      ],
-      score: 18,
-      color: PLAYER_COLORS[1],
-    },
-  ]);
+  // Estado para modo EQUIPOS - usar datos reales o fallback
+  const [teams, setTeams] = useState<Team[]>(
+    gameConfig.teams && gameConfig.teams.length > 0
+      ? gameConfig.teams
+      : [
+          {
+            id: 't1',
+            name: 'Equipo 1',
+            players: [
+              { id: '1', name: 'Jugador 1', score: 0, color: '' },
+              { id: '2', name: 'Jugador 2', score: 0, color: '' },
+            ],
+            score: 0,
+            color: '#ef4444',
+          },
+          {
+            id: 't2',
+            name: 'Equipo 2',
+            players: [
+              { id: '3', name: 'Jugador 3', score: 0, color: '' },
+              { id: '4', name: 'Jugador 4', score: 0, color: '' },
+            ],
+            score: 0,
+            color: '#3b82f6',
+          },
+        ]
+  );
 
   // Estado de rondas (guardar puntajes por ronda)
-  const [rounds, setRounds] = useState<RoundScore[]>([
-    gameConfig.hasTeams 
-      ? { 't1': 10, 't2': 8 }
-      : { '1': 5, '2': 5, '3': 5, '4': 5 },
-    gameConfig.hasTeams
-      ? { 't1': 11, 't2': 10 }
-      : { '1': 7, '2': 4, '3': 6, '4': 3 },
-  ]);
+  const [rounds, setRounds] = useState<RoundScore[]>([]);
 
   const handleScoreChange = (id: string, newScore: number) => {
     if (gameConfig.hasTeams) {
-      setTeams(prev =>
-        prev.map(team =>
+      setTeams(prev => {
+        const updated = prev.map(team =>
           team.id === id ? { ...team, score: newScore } : team
-        )
-      );
+        );
+        checkGameEnd(updated, true);
+        return updated;
+      });
     } else {
-      setPlayers(prev =>
-        prev.map(player =>
+      setPlayers(prev => {
+        const updated = prev.map(player =>
           player.id === id ? { ...player, score: newScore } : player
-        )
-      );
+        );
+        checkGameEnd(updated, false);
+        return updated;
+      });
+    }
+  };
+
+  const checkGameEnd = (data: Player[] | Team[], isTeams: boolean) => {
+    const { finishingPoints, isWinning, hasRounds } = gameConfig;
+
+    // Solo verificar fin de juego por puntos si NO es un juego por rondas
+    if (hasRounds) return;
+
+    if (isWinning) {
+      // Termina cuando alguien ALCANZA o SUPERA finishing_points y GANA
+      const winner = data.find(item => item.score >= finishingPoints);
+      if (winner) {
+        setTimeout(() => {
+          Alert.alert(
+            '¡Partida Terminada!',
+            `${winner.name} ha alcanzado ${finishingPoints} puntos y ganó la partida!`,
+            [
+              {
+                text: 'Ver Resultados',
+                onPress: () => handleEndGame(),
+              },
+            ],
+            { cancelable: false }
+          );
+        }, 100);
+      }
+    } else {
+      // Termina cuando alguien LLEGA o BAJA a finishing_points y PIERDE
+      const loser = data.find(item => item.score <= finishingPoints);
+      if (loser) {
+        setTimeout(() => {
+          Alert.alert(
+            '¡Partida Terminada!',
+            `${loser.name} ha llegado a ${finishingPoints} puntos y perdió la partida!`,
+            [
+              {
+                text: 'Ver Resultados',
+                onPress: () => handleEndGame(),
+              },
+            ],
+            { cancelable: false }
+          );
+        }, 100);
+      }
     }
   };
 
   const handleEndRound = () => {
     // Guardar puntos de la ronda actual
     const roundScores: RoundScore = {};
-    
+
     if (gameConfig.hasTeams) {
       teams.forEach(team => {
         roundScores[team.id] = team.score;
@@ -133,7 +175,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         roundScores[player.id] = player.score;
       });
     }
-    
+
     setRounds(prev => [...prev, roundScores]);
     setCurrentRound(prev => prev + 1);
 
@@ -145,15 +187,78 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     // }
   };
 
-//   const handleEndGame = () => {
-//     // Navegar a pantalla de resultados o mostrar ganador
-//     navigation.navigate('GameResults', {
-//       mode: gameConfig.hasTeams ? 'teams' : 'individual',
-//       players: gameConfig.hasTeams ? undefined : players,
-//       teams: gameConfig.hasTeams ? teams : undefined,
-//       rounds,
-//     });
-//   };
+  const handlePreviousRound = () => {
+    if (currentRound > 1) {
+      setCurrentRound(prev => prev - 1);
+      // Cargar los puntajes de la ronda anterior
+      const previousRoundScores = rounds[currentRound - 2]; // -2 porque el array empieza en 0
+      if (previousRoundScores) {
+        if (gameConfig.hasTeams) {
+          setTeams(prev => prev.map(team => ({
+            ...team,
+            score: previousRoundScores[team.id] || team.score
+          })));
+        } else {
+          setPlayers(prev => prev.map(player => ({
+            ...player,
+            score: previousRoundScores[player.id] || player.score
+          })));
+        }
+      }
+    }
+  };
+
+  const handleNextRound = () => {
+    if (currentRound < gameConfig.totalRounds) {
+      // Si ya existe la siguiente ronda, cargarla
+      const nextRoundScores = rounds[currentRound]; // currentRound porque el array empieza en 0
+      if (nextRoundScores) {
+        setCurrentRound(prev => prev + 1);
+        if (gameConfig.hasTeams) {
+          setTeams(prev => prev.map(team => ({
+            ...team,
+            score: nextRoundScores[team.id] || team.score
+          })));
+        } else {
+          setPlayers(prev => prev.map(player => ({
+            ...player,
+            score: nextRoundScores[player.id] || player.score
+          })));
+        }
+      } else {
+        // Si no existe, es como terminar la ronda actual
+        handleEndRound();
+      }
+    }
+  };
+
+  const handleEndGameButton = () => {
+    Alert.alert(
+      'Terminar Partida',
+      '¿Estás seguro que quieres terminar la partida?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Aceptar',
+          onPress: () => handleEndGame(),
+          style: 'destructive'
+        }
+      ]
+    );
+  };
+
+  const handleEndGame = () => {
+    // Navegar a pantalla de resultados
+    navigation.navigate('GameResults', {
+      mode: gameConfig.hasTeams ? 'teams' : 'individual',
+      players: gameConfig.hasTeams ? undefined : players,
+      teams: gameConfig.hasTeams ? teams : undefined,
+      rounds,
+      isWinning: gameConfig.isWinning,
+      hasRounds: gameConfig.hasRounds,
+      gameName: gameConfig.gameName || gameConfig.name,
+    });
+  };
 
   const tabs = [
     { 
@@ -186,10 +291,12 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
             teams={gameConfig.hasTeams ? teams : undefined}
             onScoreChange={handleScoreChange}
             onEndRound={handleEndRound}
-            // onEndGame={handleEndGame}
+            onEndGame={handleEndGameButton}
             hasRounds={gameConfig.hasRounds}
             currentRound={currentRound}
             totalRounds={gameConfig.totalRounds}
+            onPreviousRound={handlePreviousRound}
+            onNextRound={handleNextRound}
           />
         );
       case 'rounds':
@@ -200,14 +307,16 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
             teams={gameConfig.hasTeams ? teams : undefined}
             rounds={rounds}
             currentRound={currentRound}
+            totalRounds={gameConfig.totalRounds}
           />
         );
       case 'timer':
         return (
           <TimerView
-            initialDuration={gameConfig.timerDuration}
+            initialDuration={gameConfig.timerDuration || 120}
             onTimerEnd={() => {
               // Acción cuando termina el timer
+              handleEndRound();
             }}
           />
         );
@@ -219,7 +328,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
       <GameHeader
-        gameName={gameConfig.name}
+        gameName={gameConfig.gameName || gameConfig.name}
         onBack={() => navigation.goBack()}
         onMenu={() => {
           // Mostrar menú de opciones

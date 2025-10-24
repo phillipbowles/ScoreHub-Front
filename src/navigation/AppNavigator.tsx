@@ -19,7 +19,10 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 // Game Flow Screens
 import { CreateGameScreen } from '../screens/createGame/CreateGameScreen';
 import { GameListScreen } from '../screens/match/GameListScreen';
+import { GameDetailScreen } from '../screens/game/GameDetailScreen';
 import { MatchConfigScreen } from '../screens/match/MatchConfigScreen';
+import { GameScreen } from '../screens/game/GameScreen';
+import { GameResultsScreen } from '../screens/game/GameResultsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -162,12 +165,26 @@ export const AppNavigator: React.FC = () => {
           component={GameListScreen}
         />
         <Stack.Screen
+          name="GameDetail"
+          component={GameDetailScreen}
+        />
+        <Stack.Screen
           name="MatchConfig"
           component={MatchConfigScreen}
         />
         <Stack.Screen
           name="Game"
-          component={HomeScreen} // Temporalmente hasta crear GameScreen
+          component={GameScreen}
+          options={{
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="GameResults"
+          component={GameResultsScreen}
+          options={{
+            gestureEnabled: false,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -16,6 +16,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   name: string;
+  username: string;
   email_address: string;
   password: string;
   password_confirmation: string;
@@ -144,8 +145,8 @@ class ApiService {
     }, true); // Skip auth for login
   }
 
-  async register(userData: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
-    return this.makeRequest<RegisterResponse>('/users', {
+  async register(userData: RegisterRequest): Promise<ApiResponse<LoginResponse>> {
+    return this.makeRequest<LoginResponse>('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     }, true); // Skip auth for registration
@@ -207,7 +208,12 @@ class ApiService {
   }
 
   // MATCHES
-  async createMatch(matchData: { name: string; game_id: number }): Promise<ApiResponse<any>> {
+  async createMatch(matchData: {
+    name: string;
+    creator_id: number;
+    game_id: number;
+    players: string[]
+  }): Promise<ApiResponse<any>> {
     return this.makeRequest('/game-match', {
       method: 'POST',
       body: JSON.stringify(matchData),

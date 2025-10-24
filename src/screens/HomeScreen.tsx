@@ -20,8 +20,10 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { IconContainer } from '../components/common/IconContainer';
 import { RootStackParamList } from '../types';
+import { BackendGame } from '../types/backend.types';
 import { apiService } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getIconComponent } from '../utils/iconMapper';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -39,7 +41,7 @@ interface QuickAction {
 }
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [games, setGames] = useState<any[]>([]);
+  const [games, setGames] = useState<BackendGame[]>([]);
   const [userName, setUserName] = useState('Usuario');
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +54,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const response = await apiService.getGames();
       if (response.success && response.data) {
-        setGames(response.data);
+        const gamesList = Array.isArray(response.data)
+          ? response.data
+          : (response.data as any).data || [];
+        setGames(gamesList);
       }
     } catch (error) {
       console.error('Error loading games:', error);
@@ -137,25 +142,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Continue Game Banner */}
-        <Card className="bg-gradient-to-br from-black to-gray-800 mb-6" padding="large">
-          <View className="flex-row justify-between items-center">
-            <View className="flex-1 mr-4">
-              <View className="flex-row items-center mb-2">
-                <Play size={20} color="#ffffff" weight="fill" />
-                <Text className="text-lg font-semibold text-white ml-2">
-                  Partida en Curso
-                </Text>
-              </View>
-              <Text className="text-sm text-gray-300 mb-1">
-                UNO • 3 jugadores • Ronda 2
-              </Text>
-              <Text className="text-xs text-gray-400">Tu turno • 2:30 restantes</Text>
-            </View>
-            <Button title="Continuar" variant="secondary" size="small" />
-          </View>
-        </Card>
-
         {/* Quick Actions */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-black mb-4">Inicio Rápido</Text>
@@ -194,25 +180,31 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           ) : games.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row space-x-3">
-                {games.map((game, index) => (
-                  <Card key={game.id || index} className="w-36" padding="medium">
-                    <View className="items-center">
-                      <View className="w-14 h-14 bg-blue-500 rounded-2xl items-center justify-center mb-3">
-                        {game.icon && /\p{Emoji}/u.test(game.icon) ? (
-                          <Text className="text-3xl">{game.icon}</Text>
-                        ) : (
-                          <GameController size={28} color="#ffffff" weight="bold" />
-                        )}
+                {games.map((game) => (
+                  <TouchableOpacity
+                    key={game.id}
+                    onPress={() => navigation.navigate('GameDetail', { game })}
+                    activeOpacity={0.7}
+                  >
+                    <Card className="w-32" padding="medium">
+                      <View className="items-center">
+                        <View
+                          className="w-16 h-16 rounded-2xl items-center justify-center mb-3"
+                          style={{
+                            backgroundColor: game.bg_color || '#dbeafe',
+                          }}
+                        >
+                          {(() => {
+                            const IconComponent = getIconComponent(game.icon);
+                            return <IconComponent size={32} color={game.color || '#3b82f6'} weight="fill" />;
+                          })()}
+                        </View>
+                        <Text className="font-semibold text-black text-center" numberOfLines={2}>
+                          {game.name}
+                        </Text>
                       </View>
-                      <Text className="font-semibold text-black mb-1 text-center" numberOfLines={1}>
-                        {game.name || 'Sin nombre'}
-                      </Text>
-                      <Text className="text-xs text-gray-500 mb-3 text-center">
-                        {game.min_players || 2}-{game.max_players || 4} jugadores
-                      </Text>
-                      <Button title="Jugar" size="small" className="w-full" />
-                    </View>
-                  </Card>
+                    </Card>
+                  </TouchableOpacity>
                 ))}
               </View>
             </ScrollView>
@@ -238,29 +230,34 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Stats */}
-        <View className="flex-row mb-8">
-          <Card className="flex-1 mr-2 items-center" padding="large">
-            <IconContainer
-              icon={Trophy}
-              color="#f59e0b"
-              bgColor="#fef3c7"
-              size="large"
-              rounded="full"
-            />
-            <Text className="text-2xl font-bold text-black mt-2">23</Text>
-            <Text className="text-xs text-gray-500 font-medium">Victorias</Text>
-          </Card>
-          <Card className="flex-1 ml-2 items-center" padding="large">
-            <IconContainer
-              icon={Fire}
-              color="#ef4444"
-              bgColor="#fee2e2"
-              size="large"
-              rounded="full"
-            />
-            <Text className="text-2xl font-bold text-black mt-2">5</Text>
-            <Text className="text-xs text-gray-500 font-medium">Racha</Text>
-          </Card>
+        <View className="mb-8">
+          <Text className="text-lg font-semibold text-black mb-4">
+            Estadísticas
+          </Text>
+          <View className="flex-row">
+            <Card className="flex-1 mr-2 items-center" padding="large">
+              <IconContainer
+                icon={GameController}
+                color="#3b82f6"
+                bgColor="#dbeafe"
+                size="large"
+                rounded="full"
+              />
+              <Text className="text-2xl font-bold text-black mt-2">47</Text>
+              <Text className="text-xs text-gray-500 font-medium">Partidas</Text>
+            </Card>
+            <Card className="flex-1 ml-2 items-center" padding="large">
+              <IconContainer
+                icon={Trophy}
+                color="#f59e0b"
+                bgColor="#fef3c7"
+                size="large"
+                rounded="full"
+              />
+              <Text className="text-2xl font-bold text-black mt-2">23</Text>
+              <Text className="text-xs text-gray-500 font-medium">Victorias</Text>
+            </Card>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

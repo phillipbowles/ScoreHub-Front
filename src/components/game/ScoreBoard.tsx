@@ -3,7 +3,7 @@ import React from 'react';
 import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { PlayerScoreCard } from './PlayerScoreCard';
 import { TeamScoreCard } from './TeamScoreCard';
-import { CheckCircle, ArrowRight } from 'phosphor-react-native';
+import { CheckCircle, ArrowRight, CaretLeft, CaretRight } from 'phosphor-react-native';
 
 interface Player {
   id: string;
@@ -30,6 +30,8 @@ interface ScoreBoardProps {
   hasRounds: boolean;
   currentRound: number;
   totalRounds: number;
+  onPreviousRound?: () => void;
+  onNextRound?: () => void;
 }
 
 const PLAYER_COLORS = [
@@ -53,14 +55,25 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   hasRounds,
   currentRound,
   totalRounds,
+  onPreviousRound,
+  onNextRound,
 }) => {
   const isLastRound = hasRounds && currentRound >= totalRounds;
   const itemCount = mode === 'teams' ? teams.length : players.length;
+
+  // Hacer las cards más compactas cuando hay más de 4 jugadores
   const isCompact = itemCount > 4;
+
+  // Calcular si podemos navegar entre rondas
+  const canGoBack = hasRounds && currentRound > 1;
+  const canGoForward = hasRounds && currentRound < totalRounds;
+
+  // Si totalRounds es 1, siempre mostrar "Terminar Partida"
+  const isSingleRoundGame = totalRounds === 1;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#1a1d2e' }}>
-      {/* Indicador de ronda si aplica */}
+      {/* Indicador de ronda si aplica con navegación */}
       {hasRounds && (
         <View style={{
           backgroundColor: '#252938',
@@ -68,15 +81,45 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
           paddingHorizontal: 20,
           borderBottomWidth: 1,
           borderBottomColor: '#2d3248',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
+          {/* Botón Anterior */}
+          <TouchableOpacity
+            onPress={onPreviousRound}
+            disabled={!canGoBack}
+            style={{
+              padding: 8,
+              opacity: canGoBack ? 1 : 0.3,
+            }}
+          >
+            <CaretLeft size={24} color="#fff" weight="bold" />
+          </TouchableOpacity>
+
+          {/* Texto de ronda */}
           <Text style={{
             fontSize: 16,
             fontWeight: '600',
             color: '#fff',
             textAlign: 'center',
+            marginHorizontal: 16,
+            minWidth: 120,
           }}>
             Ronda {currentRound} de {totalRounds}
           </Text>
+
+          {/* Botón Siguiente */}
+          <TouchableOpacity
+            onPress={onNextRound}
+            disabled={!canGoForward}
+            style={{
+              padding: 8,
+              opacity: canGoForward ? 1 : 0.3,
+            }}
+          >
+            <CaretRight size={24} color="#fff" weight="bold" />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -125,9 +168,9 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
         borderTopColor: '#2d3248',
       }}>
         <TouchableOpacity
-          onPress={isLastRound ? onEndGame : onEndRound}
+          onPress={isSingleRoundGame || isLastRound ? onEndGame : onEndRound}
           style={{
-            backgroundColor: isLastRound ? '#ef4444' : '#10b981',
+            backgroundColor: isSingleRoundGame || isLastRound ? '#ef4444' : '#10b981',
             paddingVertical: 16,
             borderRadius: 12,
             flexDirection: 'row',
@@ -136,7 +179,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
             gap: 8,
           }}
         >
-          {isLastRound ? (
+          {isSingleRoundGame || isLastRound ? (
             <CheckCircle size={24} color="#fff" weight="bold" />
           ) : (
             <ArrowRight size={24} color="#fff" weight="bold" />
@@ -146,7 +189,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
             fontWeight: 'bold',
             color: '#fff',
           }}>
-            {isLastRound ? 'Terminar Partida' : 'Terminar Ronda'}
+            {isSingleRoundGame || isLastRound ? 'Terminar Partida' : 'Terminar Ronda'}
           </Text>
         </TouchableOpacity>
       </View>
