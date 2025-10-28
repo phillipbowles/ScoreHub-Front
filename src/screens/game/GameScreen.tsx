@@ -134,7 +134,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
             [
               {
                 text: 'Ver Resultados',
-                onPress: () => handleEndGame(),
+                onPress: () => handleEndGame(data, isTeams),
               },
             ],
             { cancelable: false }
@@ -152,7 +152,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
             [
               {
                 text: 'Ver Resultados',
-                onPress: () => handleEndGame(),
+                onPress: () => handleEndGame(data, isTeams),
               },
             ],
             { cancelable: false }
@@ -247,12 +247,16 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   };
 
-  const handleEndGame = () => {
+  const handleEndGame = (finalData?: Player[] | Team[], isTeamsMode?: boolean) => {
+    // Usar los datos pasados como parámetro o el estado actual
+    const finalPlayers = finalData && !isTeamsMode ? finalData as Player[] : players;
+    const finalTeams = finalData && isTeamsMode ? finalData as Team[] : teams;
+    
     // Navegar a pantalla de resultados
     navigation.navigate('GameResults', {
       mode: gameConfig.hasTeams ? 'teams' : 'individual',
-      players: gameConfig.hasTeams ? undefined : players,
-      teams: gameConfig.hasTeams ? teams : undefined,
+      players: gameConfig.hasTeams ? undefined : finalPlayers,
+      teams: gameConfig.hasTeams ? finalTeams : undefined,
       rounds,
       isWinning: gameConfig.isWinning,
       hasRounds: gameConfig.hasRounds,
