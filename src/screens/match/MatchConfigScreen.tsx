@@ -197,17 +197,33 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleRemovePlayer = (playerId: string, teamId?: string) => {
-    // No permitir eliminar al anfitrión
+    // Verificar si el jugador a eliminar es el anfitrión
     if (selectedGame.has_teams && teamId) {
+      const playerToRemove = teams
+        .find(t => t.id === teamId)
+        ?.players.find(p => p.id === playerId);
+
+      if (playerToRemove?.isHost) {
+        Alert.alert('Error', 'No puedes eliminar al anfitrión de la partida');
+        return;
+      }
+
       setTeams(prevTeams =>
         prevTeams.map(team =>
           team.id === teamId
-            ? { ...team, players: team.players.filter(p => p.id !== playerId && !p.isHost) }
+            ? { ...team, players: team.players.filter(p => p.id !== playerId) }
             : team
         )
       );
     } else {
-      setPlayers(prev => prev.filter(p => p.id !== playerId && !p.isHost));
+      const playerToRemove = players.find(p => p.id === playerId);
+
+      if (playerToRemove?.isHost) {
+        Alert.alert('Error', 'No puedes eliminar al anfitrión de la partida');
+        return;
+      }
+
+      setPlayers(prev => prev.filter(p => p.id !== playerId));
     }
   };
 
@@ -462,7 +478,7 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
                   <View className="flex-row items-center">
                     <PlayerAvatar
                       avatar={player.name.charAt(0).toUpperCase()}
-                      color={player.isHost ? "#f59e0b" : "#3b82f6"}
+                      color={player.isHost ? "#f59e0b" : player.isGuest ? "#10b981" : "#3b82f6"}
                       size="medium"
                     />
                     <View className="flex-1 ml-3">
