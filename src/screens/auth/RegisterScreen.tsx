@@ -15,6 +15,14 @@ import { Input, PasswordInput } from '../../components/ui/Input';
 import { apiService } from '../../utils/api';
 import { RootStackParamList, RegisterFormData } from '../../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  validateEmail,
+  validatePassword,
+  validateUsername,
+  validateName,
+  validatePasswordMatch,
+  getPasswordStrength,
+} from '../../utils/validation';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -33,13 +41,38 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+    // Validar nombre
+    const nameValidation = validateName(formData.name);
+    if (!nameValidation.isValid) {
+      Alert.alert('Error', nameValidation.error);
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+    // Validar username
+    const usernameValidation = validateUsername(formData.username);
+    if (!usernameValidation.isValid) {
+      Alert.alert('Error', usernameValidation.error);
+      return;
+    }
+
+    // Validar email
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      Alert.alert('Error', emailValidation.error);
+      return;
+    }
+
+    // Validar contraseña
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      Alert.alert('Error', passwordValidation.error);
+      return;
+    }
+
+    // Validar que las contraseñas coincidan
+    const passwordMatchValidation = validatePasswordMatch(formData.password, formData.confirmPassword);
+    if (!passwordMatchValidation.isValid) {
+      Alert.alert('Error', passwordMatchValidation.error);
       return;
     }
 

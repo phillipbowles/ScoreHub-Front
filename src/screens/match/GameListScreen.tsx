@@ -48,7 +48,19 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
   const loadGames = async () => {
     setLoading(true);
     try {
-      const response = await apiService.getGames();
+      // Determinar filtros según el tipo de juego
+      let filters: { classic?: boolean; name?: string } | undefined;
+
+      if (gameType === 'basic') {
+        // Juegos predefinidos del sistema (sin user_id)
+        filters = { classic: true };
+      } else if (gameType === 'community' || gameType === 'custom') {
+        // Juegos personalizados (con user_id)
+        filters = { classic: false };
+      }
+      // Para 'favorites' no usamos filtros por ahora (requiere implementar favoritos)
+
+      const response = await apiService.getGames(filters);
       if (response.success && response.data) {
         // El backend puede devolver { data: [...games] } o directamente [...games]
         const gamesList = Array.isArray(response.data)
@@ -56,7 +68,7 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
           : (response.data as any).data || [];
 
         console.log('📊 Total games received:', gamesList.length);
-        console.log('📊 Games data:', JSON.stringify(gamesList.slice(0, 2), null, 2)); // Mostrar primeros 2 juegos
+        console.log('📊 Game type filter:', gameType);
 
         // Filtrar juegos que no tengan id (datos inválidos)
         const validGames = gamesList.filter((game: BackendGame) => {
@@ -69,8 +81,19 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
 
         console.log('✅ Valid games after filter:', validGames.length);
 
-        // TODO: Filtrar por tipo de juego cuando el backend lo soporte
-        setGames(validGames);
+        // Para 'custom', filtrar por user_id del usuario autenticado
+        // (requiere obtener el user_id del usuario logueado)
+        if (gameType === 'custom') {
+          // Por ahora mostramos todos los juegos no-classic
+          // TODO: Filtrar solo los juegos creados por el usuario autenticado
+          setGames(validGames);
+        } else if (gameType === 'community') {
+          // Por ahora mostramos todos los juegos no-classic
+          // TODO: Excluir los juegos creados por el usuario autenticado
+          setGames(validGames);
+        } else {
+          setGames(validGames);
+        }
       } else {
         console.error('❌ Error loading games:', response.error);
 

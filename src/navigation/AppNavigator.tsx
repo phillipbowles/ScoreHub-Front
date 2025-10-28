@@ -9,6 +9,7 @@ import { RootStackParamList } from '../types';
 // Auth Screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 
 // Main Screens (Bottom Tabs)
 import { HomeScreen } from '../screens/HomeScreen';
@@ -127,16 +128,23 @@ export const AppNavigator: React.FC = () => {
         }}
       >
         {/* Auth Screens */}
-        <Stack.Screen 
-          name="Login" 
+        <Stack.Screen
+          name="Login"
           component={LoginScreen}
           options={{
             animationTypeForReplace: 'push',
           }}
         />
-        <Stack.Screen 
-          name="Register" 
+        <Stack.Screen
+          name="Register"
           component={RegisterScreen}
+          options={{
+            animationTypeForReplace: 'push',
+          }}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
           options={{
             animationTypeForReplace: 'push',
           }}

@@ -14,6 +14,7 @@ import { Input, PasswordInput } from '../../components/ui/Input';
 import { apiService } from '../../utils/api';
 import { RootStackParamList, LoginFormData } from '../../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { validateEmail } from '../../utils/validation';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -44,8 +45,16 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const handleLogin = async () => {
-    if (!formData.email.trim() || !formData.password.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+    // Validar email
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      Alert.alert('Error', emailValidation.error);
+      return;
+    }
+
+    // Validar que la contraseña no esté vacía
+    if (!formData.password.trim()) {
+      Alert.alert('Error', 'La contraseña es obligatoria');
       return;
     }
 
@@ -219,7 +228,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Forgot Password */}
           <View className="items-center mt-8">
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
               <Text className="text-sm text-gray-500">
                 ¿Olvidaste tu contraseña?
               </Text>
