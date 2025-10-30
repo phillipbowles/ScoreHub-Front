@@ -203,7 +203,7 @@ class ApiService {
   }
 
   // GAMES (requieren auth según tus rutas)
-  async getGames(filters?: { classic?: boolean; name?: string }): Promise<ApiResponse<any[]>> {
+  async getGames(filters?: { classic?: boolean; name?: string, me?:boolean }): Promise<ApiResponse<any[]>> {
     let endpoint = '/games';
 
     if (filters) {
@@ -213,6 +213,9 @@ class ApiService {
       }
       if (filters.name) {
         params.append('filter[name]', filters.name);
+      }
+      if (filters.me) {
+        params.append('filter[me]', 'true');
       }
 
       const queryString = params.toString();

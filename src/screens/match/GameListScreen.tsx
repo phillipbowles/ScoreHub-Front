@@ -49,14 +49,17 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
     setLoading(true);
     try {
       // Determinar filtros según el tipo de juego
-      let filters: { classic?: boolean; name?: string } | undefined;
+      let filters: { classic?: boolean; name?: string, me?:boolean } | undefined;
 
       if (gameType === 'basic') {
         // Juegos predefinidos del sistema (sin user_id)
         filters = { classic: true };
-      } else if (gameType === 'community' || gameType === 'custom') {
+      } else if (gameType === 'community') {
         // Juegos personalizados (con user_id)
         filters = { classic: false };
+      }
+      else if (gameType === 'custom') {
+        filters = { me: true };
       }
       // Para 'favorites' no usamos filtros por ahora (requiere implementar favoritos)
 
@@ -138,13 +141,11 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
   const getTypeTitle = () => {
     switch (gameType) {
       case 'basic':
-        return 'Juegos Básicos';
+        return 'Juegos Clásicos';
       case 'community':
         return 'Juegos de la Comunidad';
       case 'custom':
         return 'Mis Juegos Personalizados';
-      case 'favorites':
-        return 'Favoritos';
       default:
         return 'Juegos';
     }
@@ -158,8 +159,6 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
         return 'Creados por otros usuarios';
       case 'custom':
         return 'Tus creaciones únicas';
-      case 'favorites':
-        return 'Tus juegos guardados';
       default:
         return 'Selecciona un juego para comenzar';
     }

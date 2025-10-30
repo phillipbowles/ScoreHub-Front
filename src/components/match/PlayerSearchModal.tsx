@@ -24,6 +24,7 @@ import { apiService } from '../../utils/api';
 interface User {
   id: number;
   name: string;
+  username: string;
   email_address: string;
 }
 

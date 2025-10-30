@@ -151,7 +151,7 @@ export const TeamPlayerManager: React.FC<Props> = ({
                 {/* Add Player Button */}
                 {canAddPlayer(team) && (
                   <TouchableOpacity
-                    onPress={() => onAddPlayerToTeam(team.id)}
+                    onPress={() => {onAddPlayerToTeam(team.id); }}
                     className="border-2 border-dashed rounded-lg py-3"
                     style={{ borderColor: team.color }}
                   >

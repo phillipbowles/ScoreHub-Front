@@ -35,6 +35,7 @@ interface Props {
 interface Player {
   id: string;
   name: string;
+  username?: string; // Username del usuario o 'guest' para invitados
   isGuest: boolean;
   userId?: number;
   teamId?: string;
@@ -105,6 +106,7 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         const hostPlayer: Player = {
           id: `user-${userData.id}-host`,
           name: userData.name,
+          username: userData.username, // Guardar el username para enviarlo al backend
           isGuest: false,
           userId: userData.id,
           isHost: true,
@@ -147,12 +149,14 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleAddPlayerToTeam = (teamId: string) => {
     setSelectedTeamId(teamId);
     setShowPlayerModal(true);
+    console.log(players);
   };
 
   const handleSelectUser = (user: any) => {
     const newPlayer: Player = {
       id: `user-${user.id}-${Date.now()}`,
       name: user.name,
+      username: user.username, // Guardar el username del usuario
       isGuest: false,
       userId: user.id,
       teamId: selectedTeamId || undefined,
@@ -177,6 +181,7 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
     const newPlayer: Player = {
       id: `guest-${Date.now()}`,
       name,
+      username: 'guest', // Los invitados usan el username especial 'guest'
       isGuest: true,
       teamId: selectedTeamId || undefined,
     };
@@ -279,16 +284,16 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         return;
       }
 
-      // Preparar la lista de jugadores
-      const playerNames = selectedGame.has_teams
-        ? teams.flatMap(team => team.players.map(p => p.name))
-        : players.map(p => p.name);
+      // Preparar la lista de jugadores (enviar usernames, no names)
+      const playerUsernames = selectedGame.has_teams
+        ? teams.flatMap(team => team.players.map(p => p.username || 'guest'))
+        : players.map(p => p.username || 'guest');
 
       const response = await apiService.createMatch({
         name: matchName.trim(),
         creator_id: userData.id,
         game_id: Number(selectedGame.id),
-        players: playerNames,
+        players: playerUsernames,
       });
 
       if (response.success) {

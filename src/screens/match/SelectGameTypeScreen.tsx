@@ -47,10 +47,13 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const response = await apiService.getGames();
       if (response.success && response.data) {
+        const currentUserId = (globalThis as any).User?.id;
         setGamesCount({
           existing: response.data.length,
-          community: 12,
-          custom: 5,
+          community: response.data.filter(game => game.user_id !== null).length,
+          custom: currentUserId
+            ? response.data.filter(game => game.user_id === currentUserId).length
+            : 0,
         });
       }
     } catch (error) {
@@ -61,7 +64,7 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
   const gameTypes: GameType[] = [
     {
       id: 'basic',
-      title: 'Juegos Básicos',
+      title: 'Juegos Clásicos',
       subtitle: `${gamesCount.existing} juegos cargados`,
       icon: GameController,
       color: '#3b82f6',
@@ -87,15 +90,6 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
       badge: gamesCount.custom > 0 ? `${gamesCount.custom}` : undefined,
     },
     {
-      id: 'favorites',
-      title: 'Favoritos',
-      subtitle: 'Tus juegos guardados',
-      icon: Coffee,
-      color: '#8b5cf6',
-      bgColor: '#ede9fe',
-      badge: 'Premium',
-    },
-    {
       id: 'create',
       title: 'Crear Juego Nuevo',
       subtitle: 'Diseña desde cero',
@@ -113,8 +107,7 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
       case 'basic':
       case 'community':
       case 'custom':
-      case 'favorites':
-        navigation.navigate('GameList', { gameType: typeId as 'basic' | 'community' | 'custom' | 'favorites' });
+        navigation.navigate('GameList', { gameType: typeId as 'basic' | 'community' | 'custom' });
         break;
       default:
         break;
