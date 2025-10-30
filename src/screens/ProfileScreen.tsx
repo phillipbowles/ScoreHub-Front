@@ -36,67 +36,44 @@ interface Props {
 
 export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [userData, setUserData] = useState({
-    name: 'Usuario',
-    email: '',
-    avatar: 'U',
+    name: 'Ana García',
+    email: 'ana.garcia@email.com',
+    avatar: 'A',
     stats: {
-      wins: 0,
-      games: 0,
-      streak: 0,
+      wins: 23,
+      games: 47,
+      streak: 5,
     }
   });
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   useEffect(() => {
     loadUserData();
-    loadUserStats();
   }, []);
 
   const loadUserData = async () => {
     try {
       const response = await apiService.getMe();
       if (response.success && response.data?.data) {
-        setUserData(prev => ({
-          ...prev,
+        setUserData({
           name: response.data.data.name || 'Usuario',
           email: response.data.data.email || '',
           avatar: response.data.data.name?.charAt(0).toUpperCase() || 'U',
-        }));
+          stats: userData.stats,
+        });
       } else {
         const storedData = await AsyncStorage.getItem('userData');
         if (storedData) {
           const user = JSON.parse(storedData);
-          setUserData(prev => ({
-            ...prev,
+          setUserData({
             name: user.name || 'Usuario',
             email: user.email || '',
             avatar: user.name?.charAt(0).toUpperCase() || 'U',
-          }));
+            stats: userData.stats,
+          });
         }
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-    }
-  };
-
-  const loadUserStats = async () => {
-    setIsLoadingStats(true);
-    try {
-      const response = await apiService.getUserStats();
-      if (response.success && response.data) {
-        setUserData(prev => ({
-          ...prev,
-          stats: {
-            wins: response.data.victories || 0,
-            games: response.data.total_matches || 0,
-            streak: response.data.current_streak || 0,
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading user stats:', error);
-    } finally {
-      setIsLoadingStats(false);
     }
   };
 
@@ -127,7 +104,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 px-6 mb-6" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="py-6">
           <Text className="text-3xl font-bold text-black mb-2">Perfil</Text>

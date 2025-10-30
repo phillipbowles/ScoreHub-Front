@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,10 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button } from '../../components/ui/Button';
-import { Input, PasswordInput } from '../../components/ui/Input';
+import { Input } from '../../components/ui/Input';
 import { apiService } from '../../utils/api';
 import { RootStackParamList, LoginFormData } from '../../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { validateEmail } from '../../utils/validation';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -29,138 +28,48 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Cargar el último email usado al montar el componente
-  useEffect(() => {
-    const loadLastEmail = async () => {
-      try {
-        const lastEmail = await AsyncStorage.getItem('lastEmail');
-        if (lastEmail) {
-          setFormData(prev => ({ ...prev, email: lastEmail }));
-        }
-      } catch (error) {
-        console.log('No se pudo cargar el último email:', error);
-      }
-    };
-    loadLastEmail();
-  }, []);
-
   const handleLogin = async () => {
-    // Validar email
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid) {
-      Alert.alert('Error', emailValidation.error);
-      return;
-    }
+  if (!formData.email.trim() || !formData.password.trim()) {
+    Alert.alert('Error', 'Por favor completa todos los campos');
+    return;
+  }
 
-    // Validar que la contraseña no esté vacía
-    if (!formData.password.trim()) {
-      Alert.alert('Error', 'La contraseña es obligatoria');
-      return;
-    }
+  setIsLoading(true);
+  
+  try {
+    const response = await apiService.login({
+      email: formData.email.toLowerCase().trim(),
+      password: formData.password,
+    });
 
-    setIsLoading(true);
-
-    try {
-      console.log('🔐 Attempting login for:', formData.email);
-
-      const response = await apiService.login({
-        email: formData.email.toLowerCase().trim(),
-        password: formData.password,
-      });
-
-      console.log('📥 Login response:', JSON.stringify(response, null, 2));
-
-      if (response.success && response.data) {
-        // Guardar token del formato de respuesta del backend
-        const token = response.data.data?.access_token;
-
-        if (token) {
-          try {
-            console.log('💾 Saving token to AsyncStorage...');
-            await AsyncStorage.setItem('userToken', token);
-            // Guardar el email para autocompletar la próxima vez
-            await AsyncStorage.setItem('lastEmail', formData.email.toLowerCase().trim());
-            console.log('✅ Token and email saved successfully');
-            console.log('🔑 Token preview:', token.substring(0, 30) + '...');
-
-            // Navegar a Home
-            console.log('🚀 Navigating to Home...');
-            navigation.navigate('Home');
-          } catch (storageError) {
-            console.error('❌ Error saving token:', storageError);
-            Alert.alert(
-              'Error',
-              'No se pudo guardar la sesión. Intenta nuevamente.'
-            );
-          }
-        } else {
-          console.error('❌ No token in response:', response.data);
-          Alert.alert('Error', 'No se recibió el token de autenticación');
-        }
-      } else {
-        // Manejar errores específicos del backend
-        console.error('❌ Login failed:', response.error);
-
-        // El error puede ser un objeto con estructura { message, fields, code }
-        let errorMessage = 'Credenciales incorrectas';
-
-        if (response.error) {
-          if (typeof response.error === 'string') {
-            errorMessage = response.error;
-          } else if (typeof response.error === 'object' && response.error !== null) {
-            // Usar una variable con tipo seguro para evitar errores de TS
-            const errObj = response.error as { message?: unknown; fields?: unknown };
-
-            const mainMessage = typeof errObj.message === 'string'
-              ? errObj.message
-              : 'Error en el inicio de sesión';
-
-            let fieldMessages = '';
-            if (errObj.fields && typeof errObj.fields === 'object') {
-              try {
-                // Intentar extraer mensajes de campo como array de strings
-                const values = Object.values(errObj.fields as Record<string, unknown>);
-                const flattened: string[] = values
-                  .flatMap(v => Array.isArray(v) ? v : [v])
-                  .map(v => (v === null || v === undefined) ? '' : String(v));
-
-                const nonEmpty = flattened.filter(s => s && s.trim().length > 0);
-                if (nonEmpty.length > 0) {
-                  fieldMessages = '\n' + nonEmpty.join('\n');
-                }
-              } catch (e) {
-                // Si falla la extracción, no romper la app
-                console.warn('Could not parse field errors', e);
-              }
-            }
-
-            errorMessage = mainMessage + fieldMessages;
-          }
-        }
-
-        Alert.alert('Error de Login', errorMessage);
+    if (response.success && response.data) {
+      // Guardar token del formato de respuesta del backend
+      if (response.data.data?.access_token) {
+        await AsyncStorage.setItem('userToken', response.data.data.access_token);
       }
-    } catch (error) {
-      console.error('💥 Login exception:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
 
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Error de conexión al servidor';
-
-      Alert.alert(
-        'Error de Conexión',
-        `No se pudo conectar al servidor. Verifica tu conexión a internet.\n\nDetalle: ${errorMessage}`
-      );
-    } finally {
-      setIsLoading(false);
+      console.log('Login successful');
+      navigation.navigate('Home');
+    } else {
+      // Manejar errores específicos del backend
+      const errorMessage = response.error || 'Credenciales incorrectas';
+      Alert.alert('Error de Login', errorMessage);
     }
-  };
+  } catch (error) {
+    console.error('Login network error:', error);
+    Alert.alert(
+      'Error de Conexión', 
+      'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView
-        className="flex-1"
+      <KeyboardAvoidingView 
+        className="flex-1" 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View className="flex-1 px-8">
@@ -175,10 +84,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           {/* Form */}
-          <View
-            className="mb-8"
-            nativeID="login-form"
-          >
+          <View className="mb-8">
             <View className="mb-5">
               <Input
                 placeholder="Email"
@@ -187,25 +93,16 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="email"
-                textContentType="username"
-                importantForAutofill="yes"
-                returnKeyType="next"
-                onSubmitEditing={() => {}}
               />
             </View>
 
             <View className="mb-8">
-              <PasswordInput
+              <Input
                 placeholder="Contraseña"
                 value={formData.password}
                 onChangeText={(password) => setFormData({ ...formData, password })}
+                secureTextEntry
                 autoCapitalize="none"
-                autoComplete="password"
-                textContentType="password"
-                importantForAutofill="yes"
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
               />
             </View>
 
@@ -216,7 +113,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               className="mb-5"
             />
 
-            <TouchableOpacity
+            <TouchableOpacity 
               onPress={() => navigation.navigate('Register')}
               className="items-center"
             >
@@ -228,7 +125,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Forgot Password */}
           <View className="items-center mt-8">
-            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <TouchableOpacity>
               <Text className="text-sm text-gray-500">
                 ¿Olvidaste tu contraseña?
               </Text>
