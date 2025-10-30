@@ -16,6 +16,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   name: string;
+  username: string;
   email_address: string;
   password: string;
   password_confirmation: string;
@@ -77,6 +78,10 @@ class ApiService {
 
     try {
       const token = skipAuth ? null : await this.getAuthToken();
+
+      if (!skipAuth && token) {
+        console.log(`🔑 Token: ${token.substring(0, 20)}...`);
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -140,8 +145,8 @@ class ApiService {
     }, true); // Skip auth for login
   }
 
-  async register(userData: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
-    return this.makeRequest<RegisterResponse>('/users', {
+  async register(userData: RegisterRequest): Promise<ApiResponse<LoginResponse>> {
+    return this.makeRequest<LoginResponse>('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     }, true); // Skip auth for registration
@@ -151,6 +156,20 @@ class ApiService {
     return this.makeRequest<void>('/users/logout', {
       method: 'POST',
     });
+  }
+
+  async forgotPassword(email: string): Promise<ApiResponse<any>> {
+    return this.makeRequest('/users/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }, true); // Skip auth for password reset
+  }
+
+  async resetPassword(token: string, email: string, password: string, password_confirmation: string): Promise<ApiResponse<any>> {
+    return this.makeRequest('/users/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, email, password, password_confirmation }),
+    }, true); // Skip auth for password reset
   }
 
   async getMe(): Promise<ApiResponse<any>> {
@@ -179,9 +198,30 @@ class ApiService {
     });
   }
 
+  async getUserStats(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/users/stats');
+  }
+
   // GAMES (requieren auth según tus rutas)
-  async getGames(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest('/games');
+  async getGames(filters?: { classic?: boolean; name?: string }): Promise<ApiResponse<any[]>> {
+    let endpoint = '/games';
+
+    if (filters) {
+      const params = new URLSearchParams();
+      if (filters.classic !== undefined) {
+        params.append('filter[classic]', filters.classic ? 'true' : 'false');
+      }
+      if (filters.name) {
+        params.append('filter[name]', filters.name);
+      }
+
+      const queryString = params.toString();
+      if (queryString) {
+        endpoint += `?${queryString}`;
+      }
+    }
+
+    return this.makeRequest(endpoint);
   }
 
   async getGame(gameId: number): Promise<ApiResponse<any>> {
@@ -199,6 +239,44 @@ class ApiService {
     return this.makeRequest(`/games/${gameId}`, {
       method: 'PUT',
       body: JSON.stringify(gameData),
+    });
+  }
+
+  // MATCHES
+  async createMatch(matchData: {
+    name: string;
+    creator_id: number;
+    game_id: number;
+    players: string[]
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/game-match', {
+      method: 'POST',
+      body: JSON.stringify(matchData),
+    });
+  }
+
+  async getMatch(matchId: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/game-match/${matchId}`);
+  }
+
+  async deleteMatch(matchId: number): Promise<ApiResponse<void>> {
+    return this.makeRequest(`/game-match/${matchId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // RESULTS
+  async saveResults(resultsData: {
+    match_id: number;
+    results: Array<{
+      user_id: number;
+      position: number;
+      status: string;
+    }>;
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/results', {
+      method: 'POST',
+      body: JSON.stringify(resultsData),
     });
   }
 }

@@ -9,17 +9,21 @@ import { RootStackParamList } from '../types';
 // Auth Screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 
 // Main Screens (Bottom Tabs)
 import { HomeScreen } from '../screens/HomeScreen';
-import { SelectGameTypeScreen } from '../screens/game/SelectGameTypeScreen';
+import { SelectGameTypeScreen } from '../screens/match/SelectGameTypeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 
 // Game Flow Screens
-import { CreateGameScreen } from '../screens/game/CreateGameScreen';
-import { AddPlayersScreen } from '../screens/game/AddPlayersScreen';
-import { GameConfigScreen } from '../screens/game/GameConfigScreen';
+import { CreateGameScreen } from '../screens/createGame/CreateGameScreen';
+import { GameListScreen } from '../screens/match/GameListScreen';
+import { GameDetailScreen } from '../screens/game/GameDetailScreen';
+import { MatchConfigScreen } from '../screens/match/MatchConfigScreen';
+import { GameScreen } from '../screens/game/GameScreen';
+import { GameResultsScreen } from '../screens/game/GameResultsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -124,16 +128,23 @@ export const AppNavigator: React.FC = () => {
         }}
       >
         {/* Auth Screens */}
-        <Stack.Screen 
-          name="Login" 
+        <Stack.Screen
+          name="Login"
           component={LoginScreen}
           options={{
             animationTypeForReplace: 'push',
           }}
         />
-        <Stack.Screen 
-          name="Register" 
+        <Stack.Screen
+          name="Register"
           component={RegisterScreen}
+          options={{
+            animationTypeForReplace: 'push',
+          }}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
           options={{
             animationTypeForReplace: 'push',
           }}
@@ -148,26 +159,40 @@ export const AppNavigator: React.FC = () => {
           }}
         />
 
-        {/* Game Flow Screens (Stack over Tabs) */}
-        <Stack.Screen 
-          name="CreateGame" 
+        {/* Game Flow Screens (New Flow) */}
+        <Stack.Screen
+          name="CreateGame"
           component={CreateGameScreen}
         />
-        <Stack.Screen 
-          name="SelectGameType" 
+        <Stack.Screen
+          name="SelectGameType"
           component={SelectGameTypeScreen}
         />
-        <Stack.Screen 
-          name="AddPlayers" 
-          component={AddPlayersScreen}
+        <Stack.Screen
+          name="GameList"
+          component={GameListScreen}
         />
-        <Stack.Screen 
-          name="GameConfig" 
-          component={GameConfigScreen}
+        <Stack.Screen
+          name="GameDetail"
+          component={GameDetailScreen}
         />
-        <Stack.Screen 
-          name="Game" 
-          component={HomeScreen} // Temporalmente hasta crear GameScreen
+        <Stack.Screen
+          name="MatchConfig"
+          component={MatchConfigScreen}
+        />
+        <Stack.Screen
+          name="Game"
+          component={GameScreen}
+          options={{
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="GameResults"
+          component={GameResultsScreen}
+          options={{
+            gestureEnabled: false,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

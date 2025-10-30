@@ -7,15 +7,19 @@ import {
   Users,
   Sparkle,
   Target,
-  Flag
+  Flag,
+  Crosshair,
+  Skull
 } from 'phosphor-react-native';
 import { RootStackParamList } from '../../types';
+import { CreateGameRequest } from '../../types/backend.types';
 import { Button } from '../../components/ui/Button';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { InputField } from '../../components/common/InputField';
 import { SettingItem } from '../../components/common/SettingItem';
 import { IconSelectorModal } from '../../components/game/IconSelectorModal';
 import { apiService } from '../../utils/api';
+import { getIconComponent } from '../../utils/iconMapper';
 
 type CreateGameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateGame'>;
 
@@ -23,14 +27,11 @@ interface Props {
   navigation: CreateGameScreenNavigationProp;
 }
 
-type EndingType = 'points' | 'rounds';
-type PointsType = 'max' | 'min';
-
 export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    selectedIcon: 'Trophy',
+    selectedIcon: 'CardsThree',
     selectedColor: '#3b82f6',
     selectedBgColor: '#dbeafe',
     rules: '',
@@ -38,12 +39,13 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
     minTeamLength: 2,
     maxTeamLength: 4,
     numberOfPlayers: 4,
-    rounds: 5,
-    hasTimer: false,
-    timerDuration: 60, // segundos
-    endingType: 'points' as EndingType,
-    pointsType: 'max' as PointsType,
-    pointsTarget: 100,
+    rounds: 1,
+    startingPoints: 0,
+    showTimer: false,
+    defaultTimerDuration: 60,
+    endingType: 'end_rounds' as 'end_rounds' | 'win' | 'lose',
+    pointsToWin: 100,
+    pointsToLose: 0,
   });
   
   const [showIconModal, setShowIconModal] = useState(false);
@@ -66,11 +68,6 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    if (!formData.description.trim()) {
-      Alert.alert('Error', 'La descripción es obligatoria');
-      return;
-    }
-
     if (!formData.rules.trim()) {
       Alert.alert('Error', 'Las reglas del juego son obligatorias');
       return;
@@ -82,28 +79,48 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    // Validación de puntos según el tipo de finalización
+    if (formData.endingType === 'win') {
+      if (formData.pointsToWin === formData.startingPoints) {
+        Alert.alert('Error', 'Los puntos para ganar no pueden ser iguales a los puntos iniciales');
+        return;
+      }
+    }
+
+    if (formData.endingType === 'lose') {
+      if (formData.pointsToLose === formData.startingPoints) {
+        Alert.alert('Error', 'Los puntos para perder no pueden ser iguales a los puntos iniciales');
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
-      const gameData = {
+      const gameData: CreateGameRequest = {
         name: formData.name.trim(),
-        description: formData.description.trim(),
-        icon: formData.selectedIcon,
-        icon_color: formData.selectedColor,
-        icon_bg_color: formData.selectedBgColor,
-        rules: formData.rules.trim(),
         number_of_players: formData.numberOfPlayers,
         has_teams: formData.hasTeams,
         min_team_length: formData.hasTeams ? formData.minTeamLength : 0,
         max_team_length: formData.hasTeams ? formData.maxTeamLength : 0,
-        has_turns: formData.hasTimer,
-        turn_duration: formData.hasTimer ? formData.timerDuration : 0,
-        round_duration: formData.hasTimer ? formData.timerDuration : 0,
+        has_turns: formData.showTimer,
+        turn_duration: formData.showTimer ? formData.defaultTimerDuration : 0,
+        round_duration: formData.showTimer ? formData.defaultTimerDuration : 0,
         rounds: formData.rounds,
-        ending: formData.endingType,
-        points_type: formData.endingType === 'points' ? formData.pointsType : null,
-        points_target: formData.endingType === 'points' ? formData.pointsTarget : null,
+        starting_points: formData.startingPoints,
+        finishing_points: formData.endingType === 'win'
+          ? formData.pointsToWin
+          : formData.endingType === 'lose'
+          ? formData.pointsToLose
+          : formData.startingPoints, // Si es por rondas, no importa el finishing_points
+        is_winning: formData.endingType === 'win', // true si es 'win', false si es 'lose' o 'end_rounds'
+        rules: formData.rules.trim() || undefined,
+        description: formData.description.trim() || undefined,
+        icon: formData.selectedIcon,
+        color: formData.selectedColor,
+        bg_color: formData.selectedBgColor,
       };
 
+      console.log('📤 Creating game with data:', gameData);
       const response = await apiService.createGame(gameData);
 
       if (response.success) {
@@ -113,10 +130,48 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
         );
       } else {
-        Alert.alert('Error', response.error || 'Error al crear el juego');
+        console.error('❌ Error creating game:', response.error);
+
+        // El error puede ser un objeto con estructura { message, fields, code }
+        let errorMessage = 'Error al crear el juego';
+
+        if (response.error) {
+          if (typeof response.error === 'string') {
+            errorMessage = response.error;
+          } else if (typeof response.error === 'object') {
+            // Extraer el mensaje del objeto de error
+            errorMessage = (typeof response.error === 'object' && response.error !== null && 'message' in response.error)
+              ? (response.error as { message?: string }).message || 'Error al crear el juego'
+              : 'Error al crear el juego';
+
+            // Si hay errores de campos específicos, agregarlos
+            if (
+              typeof response.error === 'object' &&
+              response.error !== null &&
+              'fields' in response.error &&
+              typeof (response.error as any).fields === 'object'
+            ) {
+              const fieldErrors = Object.values((response.error as any).fields).flat();
+              if (fieldErrors.length > 0) {
+                errorMessage = fieldErrors.join('\n');
+              }
+            }
+          }
+        }
+
+        Alert.alert('Error', errorMessage);
       }
     } catch (error) {
-      Alert.alert('Error de Conexión', 'Verifica tu conexión a internet.');
+      console.error('💥 Exception creating game:', error);
+
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Error desconocido';
+
+      Alert.alert(
+        'Error de Conexión',
+        `No se pudo conectar al servidor. Verifica tu conexión a internet.\n\nDetalle: ${errorMessage}`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +201,7 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Selector de Icono */}
         <SettingItem
-          icon={Sparkle}
+          icon={getIconComponent(formData.selectedIcon)}
           iconColor={formData.selectedColor}
           iconBgColor={formData.selectedBgColor}
           label="Icono y Color"
@@ -155,16 +210,15 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => setShowIconModal(true)}
         />
 
-        {/* Descripción */}
+        {/* Descripción - OPCIONAL */}
         <InputField
           label="Descripción"
-          placeholder="Describe las características especiales..."
+          placeholder="Describe las características especiales... (opcional)"
           value={formData.description}
           onChangeText={(text) => updateFormData('description', text)}
           multiline
           numberOfLines={3}
           textAlignVertical="top"
-          required
         />
 
         {/* Reglas */}
@@ -233,7 +287,7 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           counterMax={20}
         />
 
-        {/* Número de Rondas - Siempre visible */}
+        {/* Número de Rondas */}
         <SettingItem
           icon={Trophy}
           iconColor="#f59e0b"
@@ -247,28 +301,44 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           counterMax={50}
         />
 
-        {/* Tiene Timer */}
+        {/* Puntos Iniciales */}
+        <SettingItem
+          icon={Target}
+          iconColor="#10b981"
+          iconBgColor="#d1fae5"
+          label="Puntos Iniciales"
+          description="Puntos con los que arranca cada jugador"
+          type="counter"
+          value={formData.startingPoints}
+          onValueChange={(val) => updateFormData('startingPoints', val)}
+          counterMin={-100}
+          counterMax={1000}
+          counterStep={5}
+        />
+
+        {/* Mostrar Timer */}
         <SettingItem
           icon={Clock}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          label="Tiempo Limitado por Turno"
-          description={formData.hasTimer ? 'Cada turno tiene límite de tiempo' : 'Sin límite de tiempo'}
+          label="Mostrar Timer"
+          description={formData.showTimer ? 'Se mostrará un timer durante el juego' : 'Sin timer visible'}
           type="toggle"
-          value={formData.hasTimer}
-          onValueChange={(val) => updateFormData('hasTimer', val)}
+          value={formData.showTimer}
+          onValueChange={(val) => updateFormData('showTimer', val)}
         />
 
-        {/* Duración del timer */}
-        {formData.hasTimer && (
+        {/* Tiempo Predeterminado del Timer */}
+        {formData.showTimer && (
           <SettingItem
             icon={Clock}
             iconColor="#3b82f6"
             iconBgColor="#dbeafe"
-            label="Duración del Turno (segundos)"
+            label="Tiempo Predeterminado (segundos)"
+            description="Duración del timer"
             type="counter"
-            value={formData.timerDuration}
-            onValueChange={(val) => updateFormData('timerDuration', val)}
+            value={formData.defaultTimerDuration}
+            onValueChange={(val) => updateFormData('defaultTimerDuration', val)}
             counterMin={5}
             counterMax={600}
             counterStep={5}
@@ -281,47 +351,55 @@ export const CreateGameScreen: React.FC<Props> = ({ navigation }) => {
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
           label="El Juego Termina por"
-          description={formData.endingType === 'points' ? 'Puntos alcanzados' : 'Rondas completadas'}
+          description={
+            formData.endingType === 'end_rounds'
+              ? 'Rondas completadas'
+              : formData.endingType === 'win'
+              ? 'Alcanzar puntos para ganar'
+              : 'Bajar a puntos para perder'
+          }
           type="segmented"
           value={formData.endingType}
           onValueChange={(val) => updateFormData('endingType', val)}
           segmentedOptions={[
-            { label: 'Puntos', value: 'points' },
-            { label: 'Rondas', value: 'rounds' },
+            { label: 'Rondas', value: 'end_rounds' },
+            { label: 'Win', value: 'win' },
+            { label: 'Lose', value: 'lose' },
           ]}
         />
 
-        {/* Si termina por puntos */}
-        {formData.endingType === 'points' && (
-          <>
-            <SettingItem
-              icon={Target}
-              iconColor="#8b5cf6"
-              iconBgColor="#ede9fe"
-              label="Tipo de Puntos"
-              description={formData.pointsType === 'max' ? 'Gana quien alcance el máximo' : 'Gana quien tenga el mínimo'}
-              type="segmented"
-              value={formData.pointsType}
-              onValueChange={(val) => updateFormData('pointsType', val)}
-              segmentedOptions={[
-                { label: 'Máximo', value: 'max' },
-                { label: 'Mínimo', value: 'min' },
-              ]}
-            />
+        {/* Puntos para Ganar - solo si endingType === 'win' */}
+        {formData.endingType === 'win' && (
+          <SettingItem
+            icon={Crosshair}
+            iconColor="#10b981"
+            iconBgColor="#d1fae5"
+            label="Puntos para Ganar"
+            description="Alcanzar estos puntos para ganar"
+            type="counter"
+            value={formData.pointsToWin}
+            onValueChange={(val) => updateFormData('pointsToWin', val)}
+            counterMin={-10000}
+            counterMax={10000}
+            counterStep={5}
+          />
+        )}
 
-            <SettingItem
-              icon={Target}
-              iconColor="#8b5cf6"
-              iconBgColor="#ede9fe"
-              label={`Puntos ${formData.pointsType === 'max' ? 'Máximos' : 'Mínimos'}`}
-              type="counter"
-              value={formData.pointsTarget}
-              onValueChange={(val) => updateFormData('pointsTarget', val)}
-              counterMin={1}
-              counterMax={10000}
-              counterStep={5}
-            />
-          </>
+        {/* Puntos para Perder - solo si endingType === 'lose' */}
+        {formData.endingType === 'lose' && (
+          <SettingItem
+            icon={Skull}
+            iconColor="#ef4444"
+            iconBgColor="#fee2e2"
+            label="Puntos para Perder"
+            description="Llegar a estos puntos para perder"
+            type="counter"
+            value={formData.pointsToLose}
+            onValueChange={(val) => updateFormData('pointsToLose', val)}
+            counterMin={-10000}
+            counterMax={10000}
+            counterStep={5}
+          />
         )}
 
         <Button

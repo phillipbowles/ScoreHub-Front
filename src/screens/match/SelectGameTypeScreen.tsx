@@ -110,39 +110,11 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
       case 'create':
         navigation.navigate('CreateGame');
         break;
-      case 'existing':
-        try {
-          const response = await apiService.getGames();
-          if (response.success && response.data && response.data.length > 0) {
-            const firstGame = response.data[0];
-            const mockGame = {
-              id: firstGame.id,
-              name: firstGame.name,
-              icon: firstGame.icon || '🎲',
-              minPlayers: firstGame.min_players || 2,
-              maxPlayers: firstGame.max_players || 10,
-              color: '#3b82f6'
-            };
-            navigation.navigate('AddPlayers', { selectedGame: mockGame });
-          } else {
-            navigation.navigate('CreateGame');
-          }
-        } catch (error) {
-          console.error('Error loading games:', error);
-        }
-        break;
+      case 'basic':
       case 'community':
       case 'custom':
-      case 'cafovitos':
-        const mockGame = {
-          id: '1',
-          name: 'UNO',
-          icon: '🃏',
-          minPlayers: 2,
-          maxPlayers: 10,
-          color: '#ff6b35'
-        };
-        navigation.navigate('AddPlayers', { selectedGame: mockGame });
+      case 'favorites':
+        navigation.navigate('GameList', { gameType: typeId as 'basic' | 'community' | 'custom' | 'favorites' });
         break;
       default:
         break;
@@ -151,31 +123,13 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-6 mb-6" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <ScreenHeader
           title="Nueva Partida"
           subtitle="Selecciona el tipo de juego que quieres jugar"
           rightIcon={<Sparkle size={24} color="#3b82f6" weight="bold" />}
         />
-
-        {/* Featured Section */}
-        <Card className="bg-gradient-to-br from-purple-600 to-blue-600 mb-6" padding="large">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <Text className="text-white text-lg font-bold mb-1">¿Primera vez?</Text>
-              <Text className="text-white/80 text-sm">
-                Comienza con nuestros juegos populares
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => handleSelectGameType('existing')}
-              className="bg-white rounded-full px-4 py-2"
-            >
-              <Text className="text-purple-600 font-semibold">Ver Juegos</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
 
         {/* Game Types */}
         <View className="mb-8">

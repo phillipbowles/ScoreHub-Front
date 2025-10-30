@@ -5,7 +5,7 @@
 // ============================================
 
 export interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
   avatar?: string;
@@ -24,10 +24,10 @@ export interface LoginFormData {
 
 export interface RegisterFormData {
   name: string;
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;
-  acceptTerms: boolean;
 }
 
 // ============================================
@@ -35,7 +35,7 @@ export interface RegisterFormData {
 // ============================================
 
 export interface Game {
-  id: string;
+  id: number;
   name: string;
   description?: string;
   icon: string;
@@ -161,24 +161,43 @@ export type RootStackParamList = {
   // Auth
   Login: undefined;
   Register: undefined;
-  
+  ForgotPassword: undefined;
+
   // Main App
   Home: undefined;
-  
+
   // Bottom Tab Screens
   HomeTab: undefined;
   GamesTab: undefined;
   StatsTab: undefined;
   ProfileTab: undefined;
-  
-  // Game Flow
+
+  // Game Flow (New Flow)
   CreateGame: undefined;
-  GameSetup: undefined;
   SelectGameType: undefined;
+  GameList: { gameType: 'basic' | 'community' | 'custom' | 'favorites' };
+  GameDetail: { game: any };
+  MatchConfig: { selectedGame: any };
+
+  // Game Screen - ACTUALIZADO para aceptar gameConfig
+  Game: { gameConfig: any };
+
+  // Game Results Screen
+  GameResults: {
+    mode: 'individual' | 'teams';
+    players?: Player[];
+    teams?: any[];
+    rounds: any[];
+    isWinning: boolean;
+    hasRounds: boolean;
+    gameName: string;
+  };
+
+  // Old Game Flow (Deprecated - to be removed)
+  GameSetup: undefined;
   AddPlayers: { selectedGame: Game };
   GameConfig: { selectedGame: Game; players: GamePlayer[] };
-  Game: { config: GameSetupConfig };
-  
+
   // Additional Screens
   Profile: undefined;
   Stats: undefined;
