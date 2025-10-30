@@ -5,6 +5,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import {
@@ -44,10 +45,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [games, setGames] = useState<BackendGame[]>([]);
   const [userName, setUserName] = useState('Usuario');
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalMatches: 0,
+    victories: 0,
+  });
 
   useEffect(() => {
     loadGames();
     loadUserName();
+    loadUserStats();
   }, []);
 
   const loadGames = async () => {
@@ -58,9 +64,24 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           ? response.data
           : (response.data as any).data || [];
         setGames(gamesList);
+      } else {
+        // Show error if API returns unsuccessful response
+        Alert.alert(
+          'Error al cargar juegos',
+          response.error || 'No se pudieron cargar los juegos. Por favor intenta de nuevo.',
+          [{ text: 'OK' }]
+        );
       }
     } catch (error) {
       console.error('Error loading games:', error);
+      Alert.alert(
+        'Error de Conexión',
+        'No se pudo conectar al servidor. Verifica tu conexión a internet.',
+        [
+          { text: 'Reintentar', onPress: () => loadGames() },
+          { text: 'Cancelar', style: 'cancel' }
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -73,23 +94,55 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setUserName(response.data.data.name || 'Usuario');
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.data));
       } else {
+        // Try to load from local storage as fallback
         const userData = await AsyncStorage.getItem('userData');
         if (userData) {
           const user = JSON.parse(userData);
           setUserName(user.name || 'Usuario');
+        } else {
+          console.warn('Could not load user data from API or local storage');
         }
       }
     } catch (error) {
       console.error('Error loading user name:', error);
+      // Try fallback to local storage
       try {
         const userData = await AsyncStorage.getItem('userData');
         if (userData) {
           const user = JSON.parse(userData);
           setUserName(user.name || 'Usuario');
+        } else {
+          // Only show alert if we can't load user data at all
+          Alert.alert(
+            'Advertencia',
+            'No se pudo cargar la información del usuario. Algunas funciones pueden no estar disponibles.',
+            [{ text: 'OK' }]
+          );
         }
       } catch (fallbackError) {
         console.error('Error loading fallback user data:', fallbackError);
+        Alert.alert(
+          'Error',
+          'Error al cargar datos del usuario. Por favor cierra sesión e inicia de nuevo.',
+          [{ text: 'OK' }]
+        );
       }
+    }
+  };
+
+  const loadUserStats = async () => {
+    try {
+      const response = await apiService.getUserStats();
+      if (response.success && response.data) {
+        setStats({
+          totalMatches: response.data.total_matches || 0,
+          victories: response.data.victories || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+      // No mostramos alert aquí para no molestar al usuario
+      // Las stats simplemente quedarán en 0
     }
   };
 
@@ -235,7 +288,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 size="large"
                 rounded="full"
               />
-              <Text className="text-2xl font-bold text-black mt-2">47</Text>
+              <Text className="text-2xl font-bold text-black mt-2">{stats.totalMatches}</Text>
               <Text className="text-xs text-gray-500 font-medium">Partidas</Text>
             </Card>
             <Card className="flex-1 ml-2 items-center" padding="large">
@@ -246,7 +299,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 size="large"
                 rounded="full"
               />
-              <Text className="text-2xl font-bold text-black mt-2">23</Text>
+              <Text className="text-2xl font-bold text-black mt-2">{stats.victories}</Text>
               <Text className="text-xs text-gray-500 font-medium">Victorias</Text>
             </Card>
           </View>

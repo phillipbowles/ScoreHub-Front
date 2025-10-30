@@ -5,7 +5,7 @@
 // ============================================
 
 export interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
   avatar?: string;
@@ -35,7 +35,7 @@ export interface RegisterFormData {
 // ============================================
 
 export interface Game {
-  id: string;
+  id: number;
   name: string;
   description?: string;
   icon: string;
@@ -161,6 +161,7 @@ export type RootStackParamList = {
   // Auth
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
 
   // Main App
   Home: undefined;

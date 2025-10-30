@@ -1,10 +1,12 @@
 // src/screens/game/GameResultsScreen.tsx
 import React, { useState } from 'react';
-import { View, SafeAreaView, ScrollView, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, SafeAreaView, ScrollView, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Trophy, Crown, Trash, FloppyDisk, CheckCircle } from 'phosphor-react-native';
 import { RootStackParamList } from '../../types';
+import { apiService } from '../../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type GameResultsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'GameResults'>;
 type GameResultsScreenRouteProp = RouteProp<RootStackParamList, 'GameResults'>;
@@ -30,8 +32,9 @@ interface Team {
 }
 
 export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { mode, players, teams, rounds, isWinning, hasRounds, gameName } = route.params;
+  const { mode, players, teams, rounds, isWinning, hasRounds, gameName, matchId, gameId } = route.params;
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Obtener la lista de jugadores o equipos
   const items = mode === 'teams' ? teams || [] : players || [];
@@ -60,6 +63,15 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
     : [];
 
   const handleDeleteMatch = () => {
+    if (!matchId) {
+      Alert.alert(
+        'No se puede borrar',
+        'Esta partida no fue guardada en el servidor, por lo que no se puede borrar.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Borrar Partida',
       '¿Estás seguro que quieres borrar esta partida? Esta acción no se puede deshacer.',
@@ -68,11 +80,24 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
         {
           text: 'Borrar',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implementar lógica de borrado
-            Alert.alert('Partida Borrada', 'La partida ha sido borrada exitosamente', [
-              { text: 'OK', onPress: () => navigation.navigate('Home') }
-            ]);
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              const response = await apiService.deleteMatch(matchId);
+
+              if (response.success) {
+                Alert.alert('Partida Borrada', 'La partida ha sido borrada exitosamente', [
+                  { text: 'OK', onPress: () => navigation.navigate('Home') }
+                ]);
+              } else {
+                Alert.alert('Error', response.error || 'No se pudo borrar la partida');
+                setIsDeleting(false);
+              }
+            } catch (error) {
+              console.error('Error deleting match:', error);
+              Alert.alert('Error', 'No se pudo conectar al servidor');
+              setIsDeleting(false);
+            }
           }
         }
       ]
@@ -80,9 +105,18 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleSaveMatch = async () => {
+    if (!matchId) {
+      Alert.alert(
+        'No se puede guardar',
+        'Esta partida no tiene un ID válido. Asegúrate de haber creado la partida correctamente.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Guardar Partida',
-      '¿Deseas guardar esta partida en tu historial?',
+      '¿Deseas guardar los resultados de esta partida en tu historial?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -90,20 +124,43 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress: async () => {
             setIsSaving(true);
             try {
-              // TODO: Implementar lógica de guardado en el backend
-              // await apiService.saveMatch({ ... })
+              // Get current user data
+              const userDataStr = await AsyncStorage.getItem('userData');
+              const userData = userDataStr ? JSON.parse(userDataStr) : null;
 
-              setTimeout(() => {
+              if (!userData?.id) {
+                throw new Error('Usuario no autenticado');
+              }
+
+              // Prepare results data
+              const results = sortedItems.map((item, index) => ({
+                user_id: userData.id, // In a real scenario, you'd map actual user IDs from players
+                position: index + 1,
+                status: index === 0 ? 'winner' : 'player',
+              }));
+
+              const response = await apiService.saveResults({
+                match_id: matchId,
+                results: results,
+              });
+
+              if (response.success) {
                 setIsSaving(false);
                 Alert.alert(
                   'Partida Guardada',
-                  'La partida ha sido guardada exitosamente en tu historial',
+                  'Los resultados han sido guardados exitosamente en tu historial',
                   [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
                 );
-              }, 1000);
+              } else {
+                throw new Error(response.error || 'Error al guardar');
+              }
             } catch (error) {
               setIsSaving(false);
-              Alert.alert('Error', 'No se pudo guardar la partida. Intenta de nuevo.');
+              console.error('Error saving match:', error);
+              Alert.alert(
+                'Error',
+                error instanceof Error ? error.message : 'No se pudo guardar la partida. Intenta de nuevo.'
+              );
             }
           }
         }
@@ -411,9 +468,9 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Botón Guardar */}
         <TouchableOpacity
           onPress={handleSaveMatch}
-          disabled={isSaving}
+          disabled={isSaving || isDeleting}
           style={{
-            backgroundColor: '#10b981',
+            backgroundColor: isSaving || isDeleting ? '#6b7280' : '#10b981',
             paddingVertical: 16,
             borderRadius: 12,
             flexDirection: 'row',
@@ -424,7 +481,7 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
           }}
         >
           {isSaving ? (
-            <CheckCircle size={24} color="#fff" weight="fill" />
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
             <FloppyDisk size={24} color="#fff" weight="fill" />
           )}
@@ -440,8 +497,9 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Botón Borrar */}
         <TouchableOpacity
           onPress={handleDeleteMatch}
+          disabled={isSaving || isDeleting}
           style={{
-            backgroundColor: '#ef4444',
+            backgroundColor: isSaving || isDeleting ? '#6b7280' : '#ef4444',
             paddingVertical: 16,
             borderRadius: 12,
             flexDirection: 'row',
@@ -450,13 +508,17 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
             gap: 8,
           }}
         >
-          <Trash size={24} color="#fff" weight="fill" />
+          {isDeleting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Trash size={24} color="#fff" weight="fill" />
+          )}
           <Text style={{
             fontSize: 18,
             fontWeight: 'bold',
             color: '#fff',
           }}>
-            Borrar Partida
+            {isDeleting ? 'Borrando...' : 'Borrar Partida'}
           </Text>
         </TouchableOpacity>
       </View>
