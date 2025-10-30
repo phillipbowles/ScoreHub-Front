@@ -179,7 +179,7 @@ export const IconSelectorModal: React.FC<Props> = ({
   };
 
   const currentIconData = gameIcons.find(i => i.name === selectedIcon);
-  const CurrentIconComponent = currentIconData?.icon || CardsThree;
+  const CurrentIconComponent = currentIconData?.icon || Trophy;
 
   return (
     <Modal
@@ -249,7 +249,7 @@ export const IconSelectorModal: React.FC<Props> = ({
               fontWeight: '600',
               color: '#111827',
             }}>
-              {currentIconData?.label || 'Cartas'}
+              {currentIconData?.label || 'Copa'}
             </Text>
             <Text style={{
               fontSize: 13,

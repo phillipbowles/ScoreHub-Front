@@ -11,18 +11,10 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button } from '../../components/ui/Button';
-import { Input, PasswordInput } from '../../components/ui/Input';
+import { Input } from '../../components/ui/Input';
 import { apiService } from '../../utils/api';
 import { RootStackParamList, RegisterFormData } from '../../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  validateEmail,
-  validatePassword,
-  validateUsername,
-  validateName,
-  validatePasswordMatch,
-  getPasswordStrength,
-} from '../../utils/validation';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -33,46 +25,37 @@ interface Props {
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
-    username: '',
     email: '',
     password: '',
     confirmPassword: '',
+    acceptTerms: false
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // const clearStorage = async () => {
+  //   try {
+  //     await AsyncStorage.clear();
+  //     Alert.alert('✅ Storage Limpiado', 'Token antiguo eliminado. Ahora puedes registrarte.');
+  //     console.log('✅ AsyncStorage cleared');
+  //   } catch (error) {
+  //     console.error('Error clearing storage:', error);
+  //     Alert.alert('Error', 'No se pudo limpiar el storage');
+  //   }
+  // };
+
   const handleRegister = async () => {
-    // Validar nombre
-    const nameValidation = validateName(formData.name);
-    if (!nameValidation.isValid) {
-      Alert.alert('Error', nameValidation.error);
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
+      Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
 
-    // Validar username
-    const usernameValidation = validateUsername(formData.username);
-    if (!usernameValidation.isValid) {
-      Alert.alert('Error', usernameValidation.error);
+    if (formData.password !== formData.confirmPassword) {
+      Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
     }
 
-    // Validar email
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid) {
-      Alert.alert('Error', emailValidation.error);
-      return;
-    }
-
-    // Validar contraseña
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid) {
-      Alert.alert('Error', passwordValidation.error);
-      return;
-    }
-
-    // Validar que las contraseñas coincidan
-    const passwordMatchValidation = validatePasswordMatch(formData.password, formData.confirmPassword);
-    if (!passwordMatchValidation.isValid) {
-      Alert.alert('Error', passwordMatchValidation.error);
+    if (!formData.acceptTerms) {
+      Alert.alert('Error', 'Debes aceptar los términos y condiciones');
       return;
     }
 
@@ -81,7 +64,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const response = await apiService.register({
         name: formData.name.trim(),
-        username: formData.username.trim(),
         email_address: formData.email.toLowerCase().trim(),
         password: formData.password,
         password_confirmation: formData.confirmPassword,
@@ -89,19 +71,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
       if (response.success) {
         console.log('✅ Registration successful:', response.data);
-
-        const token = response.data?.data?.access_token;
-        if (!token) {
-          throw new Error('No access token received after registration');
-        }
-        // Guardar credenciales para que el sistema las recuerde
-        try {
-          await AsyncStorage.setItem('lastEmail', formData.email.toLowerCase().trim());
-           await AsyncStorage.setItem('userToken', token);
-        } catch (e) {
-          console.log('Could not save email for autofill');
-        }
-
         Alert.alert('¡Éxito!', 'Cuenta creada correctamente', [
           {
             text: 'OK',
@@ -112,55 +81,15 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           }
         ]);
       } else {
-        console.log('❌ Registration failed:', response.error);
-
-        // El error puede ser un objeto con estructura { message, fields, code }
-        let errorMessage = 'Error al crear la cuenta';
-
-        if (response.error) {
-          if (typeof response.error === 'string') {
-            errorMessage = response.error;
-          } else if (typeof response.error === 'object' && response.error !== null) {
-            // Usar una variable con tipo seguro para evitar errores de TS
-            const errObj = response.error as { message?: unknown; fields?: unknown };
-
-            const mainMessage = typeof errObj.message === 'string'
-              ? errObj.message
-              : 'Error al crear la cuenta';
-
-            let fieldMessages = '';
-            if (errObj.fields && typeof errObj.fields === 'object') {
-              try {
-                const values = Object.values(errObj.fields as Record<string, unknown>);
-                const flattened: string[] = values
-                  .flatMap(v => Array.isArray(v) ? v : [v])
-                  .map(v => (v === null || v === undefined) ? '' : String(v));
-
-                const nonEmpty = flattened.filter(s => s && s.trim().length > 0);
-                if (nonEmpty.length > 0) {
-                  fieldMessages = '\n' + nonEmpty.join('\n');
-                }
-              } catch (e) {
-                console.warn('Could not parse field errors', e);
-              }
-            }
-
-            errorMessage = mainMessage + fieldMessages;
-          }
-        }
-
+        const errorMessage = response.error || 'Error al crear la cuenta';
+        console.log('❌ Registration failed:', errorMessage);
         Alert.alert('Error de Registro', errorMessage);
       }
     } catch (error) {
-      console.error('💥 Register exception:', error);
-
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Error desconocido';
-
+      console.error('Register network error:', error);
       Alert.alert(
         'Error de Conexión',
-        `No se pudo conectar al servidor. Verifica tu conexión a internet.\n\nDetalle: ${errorMessage}`
+        'No se pudo conectar con el servidor. Verifica tu conexión a internet.'
       );
     } finally {
       setIsLoading(false);
@@ -183,28 +112,23 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
 
-          <View className="mb-8" nativeID="register-form">
+          {/* Botón temporal para limpiar storage
+          <TouchableOpacity
+            onPress={clearStorage}
+            className="items-center mb-4 py-2 bg-red-100 rounded-lg"
+          >
+            <Text className="text-sm text-red-600 font-medium">
+              🗑️ Limpiar Token Antiguo (Debug)
+            </Text>
+          </TouchableOpacity> */}
+
+          <View className="mb-8">
             <View className="mb-5">
               <Input
                 placeholder="Nombre completo"
                 value={formData.name}
                 onChangeText={(name) => setFormData({ ...formData, name })}
                 autoCapitalize="words"
-                autoComplete="name"
-                textContentType="name"
-                returnKeyType="next"
-              />
-            </View>
-
-            <View className="mb-5">
-              <Input
-                placeholder="Nombre de usuario"
-                value={formData.username}
-                onChangeText={(username) => setFormData({ ...formData, username })}
-                autoCapitalize="words"
-                autoComplete="username"
-                textContentType="username"
-                returnKeyType="next"
               />
             </View>
 
@@ -216,38 +140,49 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="email"
-                textContentType="username"
-                importantForAutofill="yes"
-                returnKeyType="next"
               />
             </View>
 
             <View className="mb-5">
-              <PasswordInput
+              <Input
                 placeholder="Contraseña"
                 value={formData.password}
-                onChangeText={(password) => {
-                  setFormData({ ...formData, password, confirmPassword: password });
-                }}
+                onChangeText={(password) => setFormData({ ...formData, password })}
+                secureTextEntry
                 autoCapitalize="none"
-                autoComplete="off"
-                textContentType="none"
-                returnKeyType="next"
               />
             </View>
 
             <View className="mb-6">
-              <PasswordInput
+              <Input
                 placeholder="Confirmar contraseña"
                 value={formData.confirmPassword}
                 onChangeText={(confirmPassword) => setFormData({ ...formData, confirmPassword })}
+                secureTextEntry
                 autoCapitalize="none"
-                autoComplete="off"
-                textContentType="none"
-                returnKeyType="done"
-                onSubmitEditing={handleRegister}
               />
+            </View>
+
+            {/* Checkbox personalizado */}
+            <View className="flex-row items-start mb-8">
+              <TouchableOpacity
+                onPress={() => setFormData({ ...formData, acceptTerms: !formData.acceptTerms })}
+                className="mr-3 mt-1"
+              >
+                <View className={`w-5 h-5 rounded border-2 items-center justify-center ${
+                  formData.acceptTerms ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'
+                }`}>
+                  {formData.acceptTerms && (
+                    <Text className="text-white text-xs font-bold">✓</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+              <Text className="text-sm text-gray-500 flex-1">
+                Acepto los{' '}
+                <Text className="text-blue-500">términos y condiciones</Text>
+                {' '}y la{' '}
+                <Text className="text-blue-500">política de privacidad</Text>
+              </Text>
             </View>
 
             <Button
