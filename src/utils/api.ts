@@ -274,13 +274,15 @@ class ApiService {
     results: Array<{
       user_id: number;
       position: number;
-      status: string;
+      points:number
     }>;
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest('/results', {
-      method: 'POST',
+    const response = await this.makeRequest('/results', {
+      method: 'PATCH',
       body: JSON.stringify(resultsData),
     });
+    console.log('Save Results Response:', response);
+    return response;
   }
 }
 

@@ -153,23 +153,26 @@ export const StatsScreen: React.FC = () => {
         </View>
 
         {/* Stats Header Card */}
-        <Card className="bg-gradient-to-br from-purple-600 to-blue-600 mb-6" padding="large">
+        <Card className="mb-6" padding="large" style={{ backgroundColor: '#8b5cf6' }}>
           <View className="items-center">
-            <View className="w-20 h-20 bg-white/20 rounded-full items-center justify-center mb-4">
+            <View
+              className="w-20 h-20 rounded-full items-center justify-center mb-4"
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+            >
               <ChartBar size={40} color="#ffffff" weight="bold" />
             </View>
             <Text className="text-white text-lg font-semibold mb-2">
               Rendimiento Global
             </Text>
-            <View className="flex-row items-center space-x-4">
+            <View className="flex-row items-center" style={{ gap: 16 }}>
               <View className="items-center">
                 <Text className="text-white text-3xl font-bold">{stats.victories}</Text>
-                <Text className="text-white/80 text-sm">Victorias</Text>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.8)' }} className="text-sm">Victorias</Text>
               </View>
-              <View className="w-px h-12 bg-white/30" />
+              <View style={{ width: 1, height: 48, backgroundColor: 'rgba(255, 255, 255, 0.3)' }} />
               <View className="items-center">
                 <Text className="text-white text-3xl font-bold">{stats.win_rate}%</Text>
-                <Text className="text-white/80 text-sm">Win Rate</Text>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.8)' }} className="text-sm">Win Rate</Text>
               </View>
             </View>
           </View>
@@ -249,50 +252,6 @@ export const StatsScreen: React.FC = () => {
               </Card>
             </View>
           </View>
-        </View>
-
-        {/* Additional Stats */}
-        <View className="mb-6">
-          <Text className="text-lg font-semibold text-black mb-4">
-            Datos Adicionales
-          </Text>
-          <Card padding="none">
-            <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
-              <View className="flex-row items-center">
-                <IconContainer
-                  icon={Target}
-                  color="#9333ea"
-                  bgColor="#f3e8ff"
-                  size="medium"
-                  rounded="md"
-                />
-                <Text className="text-base font-medium text-black ml-3">
-                  Derrotas
-                </Text>
-              </View>
-              <Text className="text-base font-bold text-black">
-                {stats.defeats}
-              </Text>
-            </View>
-
-            <View className="flex-row items-center justify-between p-4">
-              <View className="flex-row items-center">
-                <IconContainer
-                  icon={Users}
-                  color="#10b981"
-                  bgColor="#d1fae5"
-                  size="medium"
-                  rounded="md"
-                />
-                <Text className="text-base font-medium text-black ml-3">
-                  Total Partidas
-                </Text>
-              </View>
-              <Text className="text-base font-bold text-black">
-                {stats.total_matches}
-              </Text>
-            </View>
-          </Card>
         </View>
 
         {/* Top Games */}

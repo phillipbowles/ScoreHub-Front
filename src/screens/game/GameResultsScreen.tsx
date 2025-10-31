@@ -21,6 +21,8 @@ interface Player {
   name: string;
   score: number;
   color: string;
+  userId?: number;
+  isGuest?: boolean;
 }
 
 interface Team {
@@ -124,43 +126,105 @@ export const GameResultsScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress: async () => {
             setIsSaving(true);
             try {
-              // Get current user data
-              const userDataStr = await AsyncStorage.getItem('userData');
-              const userData = userDataStr ? JSON.parse(userDataStr) : null;
+              console.log('💾 Starting to save match results...');
+              console.log('📊 Mode:', mode);
+              console.log('👥 Sorted items:', sortedItems);
 
-              if (!userData?.id) {
-                throw new Error('Usuario no autenticado');
+              // Prepare results data based on mode
+              let results: Array<{ user_id: number; position: number; points: number }> = [];
+
+              if (mode === 'teams') {
+                // Para modo equipos: extraer todos los jugadores de todos los equipos
+                const allPlayers: Array<{ userId?: number; isGuest?: boolean; score: number; teamIndex: number }> = [];
+
+                sortedItems.forEach((team: any, teamIndex) => {
+                  if (team.players && Array.isArray(team.players)) {
+                    team.players.forEach((player: Player) => {
+                      allPlayers.push({
+                        userId: player.userId,
+                        isGuest: player.isGuest,
+                        score: team.score, // Usar el score del equipo
+                        teamIndex: teamIndex + 1, // Posición del equipo
+                      });
+                    });
+                  }
+                });
+
+                console.log('👥 All players from teams:', allPlayers);
+
+                // Filtrar solo jugadores con userId (no invitados)
+                results = allPlayers
+                  .filter(player => player.userId && !player.isGuest)
+                  .map(player => ({
+                    user_id: player.userId!,
+                    position: player.teamIndex,
+                    points: player.score,
+                  }));
+
+              } else {
+                // Para modo individual: mapear cada jugador directamente
+                results = sortedItems
+                  .filter((player: Player) => player.userId && !player.isGuest)
+                  .map((player: Player, index) => ({
+                    user_id: player.userId!,
+                    position: index + 1,
+                    points: player.score,
+                  }));
               }
 
-              // Prepare results data
-              const results = sortedItems.map((item, index) => ({
-                user_id: userData.id, // In a real scenario, you'd map actual user IDs from players
-                position: index + 1,
-                status: index === 0 ? 'winner' : 'player',
-              }));
+              console.log('📤 Results to send:', results);
+
+              if (results.length === 0) {
+                throw new Error('No hay usuarios registrados en esta partida para guardar resultados');
+              }
 
               const response = await apiService.saveResults({
                 match_id: matchId,
                 results: results,
               });
 
+              console.log('✅ Save results response:', response);
+
               if (response.success) {
                 setIsSaving(false);
                 Alert.alert(
                   'Partida Guardada',
-                  'Los resultados han sido guardados exitosamente en tu historial',
+                  'Los resultados han sido guardados exitosamente en el historial de todos los jugadores',
                   [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
                 );
               } else {
-                throw new Error(response.error || 'Error al guardar');
+                // Mejorar manejo de errores
+                let errorMessage = 'Error al guardar';
+
+                if (typeof response.error === 'string') {
+                  errorMessage = response.error;
+                } else if (typeof response.error === 'object' && response.error !== null) {
+                  const err: any = response.error;
+                  if (err.message) {
+                    errorMessage = err.message;
+                  }
+                  // Si hay errores de validación de campos
+                  if (err.fields && typeof err.fields === 'object') {
+                    const fieldErrors = Object.values(err.fields as Record<string, string[]>).flat();
+                    if (fieldErrors.length > 0) {
+                      errorMessage = fieldErrors.join('\n');
+                    }
+                  }
+                }
+
+                console.error('❌ Error from backend:', errorMessage);
+                throw new Error(errorMessage);
               }
             } catch (error) {
               setIsSaving(false);
-              console.error('Error saving match:', error);
-              Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'No se pudo guardar la partida. Intenta de nuevo.'
-              );
+              console.error('💥 Error saving match:', error);
+
+              let errorMessage = 'No se pudo guardar la partida. Intenta de nuevo.';
+              if (error instanceof Error) {
+                errorMessage = error.message;
+              }
+
+              Alert.alert('Error al Guardar', errorMessage);
             }
           }
         }

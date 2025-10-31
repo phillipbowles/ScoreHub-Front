@@ -83,13 +83,17 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     setIsLoadingStats(true);
     try {
       const response = await apiService.getUserStats();
+
       if (response.success && response.data) {
+        // El backend puede devolver response.data.data o directamente response.data
+        const statsData = response.data.data || response.data;
+
         setUserData(prev => ({
           ...prev,
           stats: {
-            wins: response.data.victories || 0,
-            games: response.data.total_matches || 0,
-            streak: response.data.current_streak || 0,
+            wins: statsData.victories || 0,
+            games: statsData.total_matches || 0,
+            streak: statsData.current_streak || 0,
           }
         }));
       }

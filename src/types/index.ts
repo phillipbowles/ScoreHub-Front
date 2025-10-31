@@ -191,6 +191,8 @@ export type RootStackParamList = {
     isWinning: boolean;
     hasRounds: boolean;
     gameName: string;
+    matchId?: number;
+    gameId?: number;
   };
 
   // Old Game Flow (Deprecated - to be removed)

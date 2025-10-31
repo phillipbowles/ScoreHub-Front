@@ -15,7 +15,7 @@ import {
   Trophy,
   Fire,
   GameController,
-  Play,
+  Plus,
 } from 'phosphor-react-native';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -133,10 +133,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadUserStats = async () => {
     try {
       const response = await apiService.getUserStats();
+
       if (response.success && response.data) {
+        // El backend puede devolver response.data.data o directamente response.data
+        const statsData = response.data.data || response.data;
+
         setStats({
-          totalMatches: response.data.total_matches || 0,
-          victories: response.data.victories || 0,
+          totalMatches: statsData.total_matches || 0,
+          victories: statsData.victories || 0,
         });
       }
     } catch (error) {
@@ -160,12 +164,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       onPress: handleNewGame,
     },
     {
-      id: 'explore',
-      icon: BookOpen,
-      label: 'Explorar',
+      id: 'create-game',
+      icon: Plus,
+      label: 'Crear Juego',
       color: '#10b981',
       bgColor: '#d1fae5',
-      onPress: () => {},
+      onPress: () => navigation.navigate('CreateGame'),
     },
   ];
 

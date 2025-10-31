@@ -23,6 +23,8 @@ interface Player {
   name: string;
   score: number;
   color: string;
+  userId?: number;
+  isGuest?: boolean;
 }
 
 interface Team {
@@ -251,7 +253,9 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     // Usar los datos pasados como parámetro o el estado actual
     const finalPlayers = finalData && !isTeamsMode ? finalData as Player[] : players;
     const finalTeams = finalData && isTeamsMode ? finalData as Team[] : teams;
-    
+
+    console.log('🏁 Ending game with matchId:', gameConfig.matchId, 'and gameId:', gameConfig.gameId);
+
     // Navegar a pantalla de resultados
     navigation.navigate('GameResults', {
       mode: gameConfig.hasTeams ? 'teams' : 'individual',
@@ -261,6 +265,8 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       isWinning: gameConfig.isWinning,
       hasRounds: gameConfig.hasRounds,
       gameName: gameConfig.gameName || gameConfig.name,
+      matchId: gameConfig.matchId,
+      gameId: gameConfig.gameId,
     });
   };
 

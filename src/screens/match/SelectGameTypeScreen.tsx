@@ -45,15 +45,40 @@ export const SelectGameTypeScreen: React.FC<Props> = ({ navigation }) => {
 
   const loadGamesCount = async () => {
     try {
-      const response = await apiService.getGames();
-      if (response.success && response.data) {
-        const currentUserId = (globalThis as any).User?.id;
+      // Cargar todos los juegos primero
+      const allGamesResponse = await apiService.getGames();
+
+      if (allGamesResponse.success && allGamesResponse.data) {
+        // El backend puede devolver { data: [...games] } o directamente [...games]
+        const allGames = Array.isArray(allGamesResponse.data)
+          ? allGamesResponse.data
+          : (allGamesResponse.data as any).data || [];
+
+        // Cargar juegos clásicos (predefinidos del sistema)
+        const classicGamesResponse = await apiService.getGames({ classic: true });
+        const classicGames = classicGamesResponse.success && classicGamesResponse.data
+          ? (Array.isArray(classicGamesResponse.data)
+              ? classicGamesResponse.data
+              : (classicGamesResponse.data as any).data || [])
+          : [];
+
+        // Cargar juegos del usuario
+        const myGamesResponse = await apiService.getGames({ me: true });
+        const myGames = myGamesResponse.success && myGamesResponse.data
+          ? (Array.isArray(myGamesResponse.data)
+              ? myGamesResponse.data
+              : (myGamesResponse.data as any).data || [])
+          : [];
+
+        // Juegos de la comunidad son aquellos que tienen user_id y no son del usuario actual
+        const communityGames = allGames.filter((game: any) =>
+          game.user_id !== null && !myGames.some((myGame: any) => myGame.id === game.id)
+        );
+
         setGamesCount({
-          existing: response.data.length,
-          community: response.data.filter(game => game.user_id !== null).length,
-          custom: currentUserId
-            ? response.data.filter(game => game.user_id === currentUserId).length
-            : 0,
+          existing: classicGames.length,
+          community: communityGames.length,
+          custom: myGames.length,
         });
       }
     } catch (error) {

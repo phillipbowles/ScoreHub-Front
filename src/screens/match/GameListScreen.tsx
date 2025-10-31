@@ -135,7 +135,8 @@ export const GameListScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleSelectGame = (game: BackendGame) => {
-    navigation.navigate('MatchConfig', { selectedGame: game });
+    // Navegar a la página de detalles del juego primero
+    navigation.navigate('GameDetail', { game });
   };
 
   const getTypeTitle = () => {

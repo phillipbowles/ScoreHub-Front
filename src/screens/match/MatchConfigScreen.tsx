@@ -296,10 +296,13 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         players: playerUsernames,
       });
 
+      console.log('📦 Create match response:', JSON.stringify(response, null, 2));
+
       if (response.success) {
         // Preparar la configuración del juego para GameScreen
         const gameConfig = {
-          matchId: response.data?.id,
+          matchId: response.data?.data?.id || response.data?.id,
+          gameId: Number(selectedGame.id),
           name: matchName.trim(),
           gameName: selectedGame.name,
           hasTeams: selectedGame.has_teams,
@@ -320,6 +323,8 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
                   players: team.players.map(p => ({
                     id: p.id,
                     name: p.name,
+                    userId: p.userId, // Preservar userId
+                    isGuest: p.isGuest,
                     score: selectedGame.starting_points,
                     color: '',
                   })),
@@ -331,6 +336,8 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
                 players: players.map((player, index) => ({
                   id: player.id,
                   name: player.name,
+                  userId: player.userId, // Preservar userId
+                  isGuest: player.isGuest,
                   score: selectedGame.starting_points,
                   color: PLAYER_COLORS[index % PLAYER_COLORS.length],
                 })),
@@ -338,6 +345,8 @@ export const MatchConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         };
 
         console.log('🎮 Game Config:', gameConfig);
+        console.log('🆔 Match ID:', gameConfig.matchId);
+        console.log('🎯 Game ID:', gameConfig.gameId);
 
         // Navegar a GameScreen con la configuración
         navigation.navigate('Game', { gameConfig });
