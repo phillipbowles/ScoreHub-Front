@@ -15,7 +15,7 @@ import {
   MagnifyingGlass,
   User,
   UserCircle,
-  Check,
+  Plus,
 } from 'phosphor-react-native';
 import { Card } from '../ui/Card';
 import { PlayerAvatar } from '../common/PlayerAvatar';
@@ -231,7 +231,7 @@ export const PlayerSearchModal: React.FC<Props> = ({
                                   {user.email_address}
                                 </Text>
                               </View>
-                              <Check size={24} color="#10b981" weight="bold" />
+                              <Plus size={24} color="#10b981" weight="bold" />
                             </View>
                           </Card>
                         </TouchableOpacity>
