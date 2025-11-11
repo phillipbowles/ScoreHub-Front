@@ -194,7 +194,6 @@ export const TeamScoreCard: React.FC<TeamScoreCardProps> = ({
                 marginBottom: 24,
                 padding: 8,
               }}
-              autoFocus
               selectTextOnFocus
             />
 

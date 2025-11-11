@@ -184,7 +184,6 @@ export const PlayerSearchModal: React.FC<Props> = ({
                   placeholderTextColor="#9ca3af"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  autoFocus
                 />
               </View>
             </View>

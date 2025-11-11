@@ -172,7 +172,6 @@ export const PlayerScoreCard: React.FC<PlayerScoreCardProps> = ({
                 marginBottom: 24,
                 padding: 8,
               }}
-              autoFocus
               selectTextOnFocus
             />
 
