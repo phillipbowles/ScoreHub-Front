@@ -24,6 +24,7 @@ import { GameDetailScreen } from '../screens/game/GameDetailScreen';
 import { MatchConfigScreen } from '../screens/match/MatchConfigScreen';
 import { GameScreen } from '../screens/game/GameScreen';
 import { GameResultsScreen } from '../screens/game/GameResultsScreen';
+import { MatchDetailsScreen } from '../screens/MatchDetailsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -193,6 +194,10 @@ export const AppNavigator: React.FC = () => {
           options={{
             gestureEnabled: false,
           }}
+        />
+        <Stack.Screen
+          name="MatchDetails"
+          component={MatchDetailsScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

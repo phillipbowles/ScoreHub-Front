@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import {
   ChartBar,
@@ -18,10 +19,13 @@ import {
   Users,
   Target
 } from 'phosphor-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Card } from '../components/ui/Card';
 import { IconContainer } from '../components/common/IconContainer';
 import { apiService } from '../utils/api';
 import { getIconComponent } from '../utils/iconMapper';
+import { RootStackParamList } from '../types';
 
 interface UserStats {
   total_matches: number;
@@ -50,7 +54,10 @@ interface UserStats {
   }>;
 }
 
+type StatsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'StatsTab'>;
+
 export const StatsScreen: React.FC = () => {
+  const navigation = useNavigation<StatsScreenNavigationProp>();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -72,22 +79,14 @@ export const StatsScreen: React.FC = () => {
       if (response.success && response.data?.data) {
         setStats(response.data.data);
       } else {
-        Alert.alert(
-          'Error',
-          response.error || 'No se pudieron cargar las estadísticas',
-          [{ text: 'OK' }]
-        );
+        // Si no hay estadísticas o hay un error del servidor,
+        // simplemente establecemos stats a null para mostrar el empty state
+        setStats(null);
       }
     } catch (error) {
       console.error('Error loading stats:', error);
-      Alert.alert(
-        'Error de Conexión',
-        'No se pudo conectar al servidor. Verifica tu conexión.',
-        [
-          { text: 'Reintentar', onPress: () => loadStats() },
-          { text: 'Cancelar', style: 'cancel' }
-        ]
-      );
+      // En caso de error de red, también mostramos el empty state
+      setStats(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -121,12 +120,12 @@ export const StatsScreen: React.FC = () => {
     return (
       <SafeAreaView className="flex-1 bg-gray-50">
         <View className="flex-1 items-center justify-center px-6">
-          <ChartBar size={64} color="#9ca3af" />
+          <ChartBar size={64} color="#9ca3af" weight="duotone" />
           <Text className="text-xl font-semibold text-black mt-4 mb-2">
-            No hay estadísticas disponibles
+            No hay estadísticas aún registradas
           </Text>
           <Text className="text-gray-500 text-center">
-            Juega algunas partidas para ver tus estadísticas
+            Comienza a jugar partidas para ver tus estadísticas y rendimiento
           </Text>
         </View>
       </SafeAreaView>
@@ -300,39 +299,45 @@ export const StatsScreen: React.FC = () => {
               {stats.recent_matches.map((match) => {
                 const IconComponent = getIconComponent(match.icon);
                 return (
-                  <Card key={match.id} padding="medium">
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center flex-1 mr-3">
+                  <TouchableOpacity
+                    key={match.id}
+                    onPress={() => navigation.navigate('MatchDetails', { matchId: match.id })}
+                    activeOpacity={0.7}
+                  >
+                    <Card padding="medium">
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center flex-1 mr-3">
+                          <View
+                            className="w-10 h-10 rounded-lg items-center justify-center mr-3"
+                            style={{ backgroundColor: match.color }}
+                          >
+                            <IconComponent size={20} color="#ffffff" weight="bold" />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-base font-semibold text-black mb-1">
+                              {match.game_name}
+                            </Text>
+                            <Text className="text-sm text-gray-500">
+                              {formatDate(match.date)} • Ganó: {match.winner}
+                            </Text>
+                          </View>
+                        </View>
                         <View
-                          className="w-10 h-10 rounded-lg items-center justify-center mr-3"
-                          style={{ backgroundColor: match.color }}
-                        >
-                          <IconComponent size={20} color="#ffffff" weight="bold" />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-base font-semibold text-black mb-1">
-                            {match.game_name}
-                          </Text>
-                          <Text className="text-sm text-gray-500">
-                            {formatDate(match.date)} • Ganó: {match.winner}
-                          </Text>
-                        </View>
-                      </View>
-                      <View
-                        className={`px-3 py-1.5 rounded-full ${
-                          match.won ? 'bg-green-100' : 'bg-red-100'
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-semibold ${
-                            match.won ? 'text-green-700' : 'text-red-700'
+                          className={`px-3 py-1.5 rounded-full ${
+                            match.won ? 'bg-green-100' : 'bg-red-100'
                           }`}
                         >
-                          {match.won ? 'Victoria' : `${match.position}°`}
-                        </Text>
+                          <Text
+                            className={`text-xs font-semibold ${
+                              match.won ? 'text-green-700' : 'text-red-700'
+                            }`}
+                          >
+                            {match.won ? 'Victoria' : `${match.position}°`}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  </Card>
+                    </Card>
+                  </TouchableOpacity>
                 );
               })}
             </View>

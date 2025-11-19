@@ -154,6 +154,50 @@ export interface LoginResponse {
 }
 
 // ============================================
+// MATCH TYPES
+// ============================================
+
+export interface MatchResult {
+  id: number;
+  user_id: number;
+  match_id: number;
+  position: number;
+  points: number;
+  player: {
+    id: number;
+    name: string;
+    username: string;
+    email_address: string;
+  };
+  created_at: string;
+}
+
+export interface MatchDetails {
+  id: number;
+  name: string;
+  game_id: number;
+  creator_id: number;
+  game: {
+    id: number;
+    name: string;
+    description: string;
+    icon: string;
+    color: string;
+    bg_color: string;
+    number_of_players: number;
+  };
+  creator: {
+    id: number;
+    name: string;
+    username: string;
+    email_address: string;
+  };
+  results: MatchResult[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
 // NAVIGATION TYPES
 // ============================================
 
@@ -194,6 +238,9 @@ export type RootStackParamList = {
     matchId?: number;
     gameId?: number;
   };
+
+  // Match Details Screen
+  MatchDetails: { matchId: number };
 
   // Old Game Flow (Deprecated - to be removed)
   GameSetup: undefined;

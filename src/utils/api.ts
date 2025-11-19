@@ -110,6 +110,7 @@ class ApiService {
 
       if (!response.ok) {
         console.log(`❌ ${method} ${endpoint} - Status ${response.status}`);
+        console.log(`📋 Error details:`, JSON.stringify(data, null, 2));
         return {
           success: false,
           error: data.message || data.error || `HTTP error! status: ${response.status}`,

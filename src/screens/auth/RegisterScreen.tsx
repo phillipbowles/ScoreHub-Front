@@ -227,9 +227,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               <PasswordInput
                 placeholder="Contraseña"
                 value={formData.password}
-                onChangeText={(password) => {
-                  setFormData({ ...formData, password, confirmPassword: password });
-                }}
+                onChangeText={(password) => setFormData({ ...formData, password })}
                 autoCapitalize="none"
                 autoComplete="off"
                 textContentType="none"

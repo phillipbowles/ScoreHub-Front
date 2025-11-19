@@ -58,7 +58,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const loadGames = async () => {
     try {
-      const response = await apiService.getGames();
+      // Cargar solo juegos clásicos (precargados por el sistema)
+      const response = await apiService.getGames({ classic: true });
       if (response.success && response.data) {
         const gamesList = Array.isArray(response.data)
           ? response.data
@@ -222,7 +223,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {/* Popular Games */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-black mb-4">
-            Juegos Básicos
+            Juegos Clásicos
           </Text>
           {loading ? (
             <Text className="text-center text-gray-500 py-8">Cargando juegos...</Text>
